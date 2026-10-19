@@ -17,6 +17,7 @@
     color-scheme:dark;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   html,body{height:100%;margin:0}
   body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
   #map{position:fixed;inset:0;background:#0A0A0A}
@@ -74,6 +75,46 @@
   .locate{position:fixed;z-index:1000;left:50%;transform:translateX(-50%);bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 16px));
     display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:#FFF4EA;background:linear-gradient(180deg,#C67033,#9E5422);border:1px solid #E08A4A;border-radius:999px;padding:13px 20px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.55)}
   .locate:hover{border-color:var(--c-me)} .locate svg{width:18px;height:18px}
+
+  /* entrada (GPS) */
+  .gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(6,6,6,.82);backdrop-filter:blur(4px)}
+  .gate-card{width:380px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 22px;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .gate-mark{width:44px;height:44px;border-radius:10px;background:var(--c-mon);display:grid;place-items:center;margin:0 auto 4px;box-shadow:0 0 18px rgba(198,112,51,.5)}
+  .gate-mark i{width:12px;height:12px;background:#FFF4EA;transform:rotate(45deg);display:block}
+  .gate h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.05em;text-wrap:balance}
+  .gate-sub{margin:-6px 0 0!important;font-family:var(--mono);font-size:10.5px!important;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)!important}
+  .gate p{margin:0;font-size:14px;line-height:1.55;color:#D2CCC4}
+  .btn-gps{font-family:var(--sans);font-weight:700;font-size:15px;color:#FFF4EA;background:linear-gradient(180deg,#C67033,#9E5422);border:1px solid #E08A4A;border-radius:999px;padding:13px;cursor:pointer;margin-top:6px}
+  .btn-skip{font-family:var(--sans);font-size:13.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:6px}
+  .btn-skip:hover{color:var(--fg)}
+  .gate small{font-size:11px;color:var(--faint)}
+  /* painel de navegação com setas */
+  .nav{position:fixed;z-index:1000;left:50%;transform:translateX(-50%);bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 14px));width:420px;max-width:calc(100vw - 24px);background:rgba(17,17,17,.95);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.55);backdrop-filter:blur(8px);overflow:hidden}
+  .nav-h{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .nav-h span:first-child{color:var(--c-mon)}
+  .nav-mode{flex:1;text-align:right;letter-spacing:.04em;text-transform:none}
+  .nav-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:0 2px}
+  .nav-x:hover{color:var(--fg)}
+  .nav-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;background:none;border:none;border-bottom:1px solid #1c1c1c;color:var(--fg);text-align:left;cursor:pointer;font-family:var(--sans)}
+  .nav-row:last-child{border-bottom:none}
+  .nav-row:hover,.nav-row:focus-visible{background:var(--panel-2)}
+  .nav-arrow{width:34px;height:34px;border-radius:50%;background:#0A0A0A;border:1px solid var(--line);display:grid;place-items:center;flex:none;transition:transform .25s linear}
+  .nav-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .nav-txt small{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .nav-txt b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nav-d{font-family:var(--mono);font-size:13px;color:var(--fg);font-variant-numeric:tabular-nums}
+  .nav-empty{margin:0;padding:14px 12px;font-size:13px;color:var(--muted)}
+  .nav-guide{display:flex;align-items:center;gap:12px;padding:12px;background:#1a120c;border-bottom:1px solid #3a2a1e}
+  .nav-guide .g-arrow{width:46px;height:46px;border-radius:50%;background:#0A0A0A;border:2px solid var(--c-mon);color:var(--c-mon);display:grid;place-items:center;flex:none;transition:transform .25s linear}
+  .nav-guide .nav-d{font-size:16px;color:#FFF4EA}
+  .nav-stop{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 10px;cursor:pointer}
+  .nav-stop:hover{color:var(--fg);border-color:var(--muted)}
+  body.nav-on .locate{display:none}
+  @media (max-width:900px){
+    body.nav-on .layers{bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 215px)}
+    body.nav-on .leaflet-bottom{margin-bottom:205px}
+  }
+  @media (prefers-reduced-motion:reduce){.nav-arrow{transition:none}}
 
   /* marcadores */
   .mk{border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
@@ -220,6 +261,23 @@
       <div class="note p"><b>Nasce como “criado por você”.</b> A localização usa seu GPS só com permissão; o ponto fica salvo neste navegador até existir um servidor para guardá-lo.</div>
     </div>
     <div class="mf"><button class="btn" id="mCancel2">Cancelar</button><button class="btn primaryP" id="mAdd2">Erguer monumento</button></div>
+  </div>
+</div>
+
+<div class="nav" id="nav" hidden>
+  <div class="nav-h"><span>Perto de você</span><span class="nav-mode"></span><button class="nav-x" id="navClose" type="button" aria-label="Fechar navegação">×</button></div>
+  <div class="nav-list"></div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-mark"><i></i></div>
+    <h1 id="gateTitle">MONUMENTOSVIRTUAIS</h1>
+    <p class="gate-sub">Arte · Corpo · Território</p>
+    <p>Ative o GPS para encontrar os monumentos, os pontos de acesso e o Wi-Fi livre mais perto de você. As setas mostram para onde ir.</p>
+    <button class="btn-gps" id="gateGps" type="button">Ativar GPS</button>
+    <button class="btn-skip" id="gateSkip" type="button">Só explorar o mapa</button>
+    <small>Sua localização fica só no seu aparelho.</small>
   </div>
 </div>
 
@@ -392,7 +450,7 @@
       <div class="type" style="color:${COLORS[d.layer]}">${LABEL[d.layer]}</div>
       <h3>${esc(d.name)}</h3><p class="addr">${esc(d.addr||'ponto de acesso')}</p>${dist}
       <div class="chips">${chips}<span class="chip">gratuita</span></div>
-      <a class="actbtn route" href="${gmaps(d)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Abrir rota no mapa</a>
+      <button class="actbtn route" type="button" data-guide><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Guiar até aqui</button>
     </div></div>`;
   }
   function monPopup(d){
@@ -414,7 +472,7 @@
       <div class="type" style="color:${COLORS.acc}">${LABEL.acc}</div>
       <h3>${esc(d.name)}</h3>${dist}
       <div class="chips"><span class="chip">ponto de acesso · Monumentos Virtuais</span></div>
-      <a class="actbtn route" href="${gmaps(d)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Abrir rota no mapa</a>
+      <button class="actbtn route" type="button" data-guide><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Guiar até aqui</button>
     </div></div>`;
   }
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -430,6 +488,7 @@
       maxHeight:Math.max(260,window.innerHeight-200),
       autoPanPaddingTopLeft:L.point(16,window.innerWidth<560?150:90),autoPanPaddingBottomRight:L.point(16,90)});
     m.on('popupopen',e=>{
+      const gb=e.popup.getElement().querySelector('[data-guide]');if(gb)gb.onclick=()=>guideTo(d);
       if(d.layer==='mon'){const cv=e.popup.getElement().querySelector('.panoCv');if(curPano)curPano.stop();curPano=initPano(cv,d);}
     });
     m.on('popupclose',()=>{if(curPano){curPano.stop();curPano=null;}});
@@ -518,6 +577,10 @@
 
   /* ========= LOCALIZAR ========= */
   function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+  function onLocatedMarker(lat,lng){
+    if(meMarker)map.removeLayer(meMarker);
+    meMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="me-mk" style="width:16px;height:16px"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+  }
   function onLocated(lat,lng){
     me={lat,lng};
     if(meMarker)map.removeLayer(meMarker);
@@ -533,14 +596,101 @@
       toast(`Mais perto: ${best.name} · ${bd.toFixed(2)} km`);
     } else {map.setView([lat,lng],15);toast('Nenhuma rede aberta por perto nas camadas ativas');}
   }
-  document.getElementById('locate').addEventListener('click',()=>{
-    if(!navigator.geolocation){toast('GPS indisponível neste navegador');return;}
-    toast('Localizando…');
-    navigator.geolocation.getCurrentPosition(
-      p=>onLocated(p.coords.latitude,p.coords.longitude),
-      ()=>{toast('Não consegui o GPS — permita a localização');},
-      {enableHighAccuracy:true,timeout:8000});
+  /* ========= GPS CONTÍNUO + BÚSSOLA + SETAS ========= */
+  const navEl=document.getElementById('nav'),navList=navEl.querySelector('.nav-list'),navMode=navEl.querySelector('.nav-mode');
+  const ARROW='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2 19 20 12 16 5 20Z" fill="currentColor"/></svg>';
+  let heading=null,watchId=null,firstFix=true,arrowRAF=0,navRows=[],guideTarget=null,arrived=false;
+  function bearing(a,b){const r=Math.PI/180,f1=a.lat*r,f2=b.lat*r,dl=(b.lng-a.lng)*r;
+    return (Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))/r+360)%360;}
+  function fmtDist(km){return km<1?Math.round(km*1000)+' m':(km<10?km.toFixed(1).replace('.',','):Math.round(km))+' km';}
+  function nearestOf(list){let best=null,bd=1e9;list.forEach(d=>{const k=haversine(me,d);if(k<bd){bd=k;best=d;}});return best?{d:best,km:bd}:null;}
+  function setMode(){navMode.textContent=heading==null?'setas em relação ao norte ↑':'bússola ativa · gire o celular';}
+  function renderNav(){
+    if(!me)return;
+    const only=document.getElementById('onlyOpen').checked;
+    const wifi=store.public.concat(store.open).filter(d=>!only||d.outdoor).concat(store.shared);
+    navRows=[
+      {k:'mon',label:'Monumento',t:on.mon?nearestOf(store.mon):null},
+      {k:'acc',label:'Ponto de acesso',t:on.acc?nearestOf(store.acc):null},
+      {k:'public',label:'Wi-Fi livre',t:on.public?nearestOf(wifi):null}
+    ].filter(r=>r.t).map(r=>Object.assign(r,{b:bearing(me,r.t.d)}));
+    let gHtml='';
+    if(guideTarget){const km=haversine(me,guideTarget),b=bearing(me,guideTarget);
+      gHtml=`<div class="nav-guide"><span class="g-arrow" style="transform:rotate(${heading==null?b:b-heading}deg)">${ARROW.replace(/20/g,'26')}</span><span class="nav-txt"><small>Indo para</small><b>${esc(guideTarget.name)}</b></span><span class="nav-d">${fmtDist(km)}</span><button class="nav-stop" type="button" data-stop>Parar</button></div>`;}
+    navList.innerHTML=gHtml+(navRows.length?navRows.map((r,i)=>`<button class="nav-row" type="button" data-i="${i}"><span class="nav-arrow" style="color:${COLORS[r.k]};transform:rotate(${heading==null?r.b:r.b-heading}deg)">${ARROW}</span><span class="nav-txt"><small>${r.label}</small><b>${esc(r.t.d.name)}</b></span><span class="nav-d">${fmtDist(r.t.km)}</span></button>`).join(''):'<p class="nav-empty">Ligue uma camada para ver os pontos.</p>');
+    setMode();updateGuideLine();
+  }
+  function updateArrows(){
+    if(arrowRAF)return;
+    arrowRAF=requestAnimationFrame(()=>{arrowRAF=0;
+      navList.querySelectorAll('.nav-arrow').forEach((a,i)=>{const r=navRows[i];if(r)a.style.transform=`rotate(${heading==null?r.b:r.b-heading}deg)`;});
+      const ga=navList.querySelector('.g-arrow');if(ga&&guideTarget&&me){const b=bearing(me,guideTarget);ga.style.transform=`rotate(${heading==null?b:b-heading}deg)`;}
+      setMode();});
+  }
+  navList.addEventListener('click',e=>{
+    if(e.target.closest('[data-stop]')){stopGuide();return;}
+    const b=e.target.closest('.nav-row');if(!b)return;const r=navRows[+b.dataset.i];if(!r)return;
+    const m=r.t.d._m,g=groups[r.t.d.layer];
+    if(m&&g&&g.zoomToShowLayer)g.zoomToShowLayer(m,()=>m.openPopup());
+    else{map.flyTo([r.t.d.lat,r.t.d.lng],16);if(m)map.once('moveend',()=>m.openPopup());}
   });
+  function onOrient(e){
+    let h=null;
+    if(typeof e.webkitCompassHeading==='number')h=e.webkitCompassHeading;
+    else if(e.absolute&&typeof e.alpha==='number')h=360-e.alpha;
+    if(h==null||isNaN(h))return;
+    const so=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+    heading=((h+so)%360+360)%360;updateArrows();
+  }
+  let compassOn=false;
+  function startCompass(){ // precisa rodar dentro do toque (exigência do iPhone)
+    if(compassOn)return;
+    const add=()=>{compassOn=true;window.addEventListener('ondeviceorientationabsolute' in window?'deviceorientationabsolute':'deviceorientation',onOrient);};
+    const DOE=window.DeviceOrientationEvent;
+    if(!DOE)return;
+    if(typeof DOE.requestPermission==='function')DOE.requestPermission().then(s=>{if(s==='granted')add();}).catch(()=>{});
+    else add();
+  }
+  function updateGuideLine(){
+    if(!guideTarget||!me)return;
+    if(routeLine)map.removeLayer(routeLine);
+    routeLine=L.polyline([[me.lat,me.lng],[guideTarget.lat,guideTarget.lng]],{color:'#E3A46F',weight:3,dashArray:'8 7',opacity:.95}).addTo(map);
+    if(!arrived&&haversine(me,guideTarget)<0.03){arrived=true;toast('Você chegou: '+guideTarget.name);}
+  }
+  function guideTo(d){
+    guideTarget=d;arrived=false;map.closePopup();
+    if(watchId==null){startGPS();return;}
+    navEl.hidden=false;document.body.classList.add('nav-on');renderNav();
+    if(me&&routeLine)map.fitBounds(routeLine.getBounds().pad(0.3));
+  }
+  function stopGuide(){guideTarget=null;if(routeLine){map.removeLayer(routeLine);routeLine=null;}renderNav();}
+  function stopGPS(){
+    guideTarget=null;if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    if(watchId!=null)navigator.geolocation.clearWatch(watchId);
+    watchId=null;firstFix=true;navEl.hidden=true;document.body.classList.remove('nav-on');
+  }
+  function startGPS(){
+    if(!navigator.geolocation){toast('GPS indisponível neste navegador');return;}
+    startCompass();
+    navEl.hidden=false;document.body.classList.add('nav-on');
+    if(watchId!=null){if(me){map.setView([me.lat,me.lng],Math.max(map.getZoom(),15));renderNav();}return;}
+    navList.innerHTML='<p class="nav-empty">Procurando sua posição…</p>';setMode();
+    watchId=navigator.geolocation.watchPosition(p=>{
+      const lat=p.coords.latitude,lng=p.coords.longitude;
+      if(firstFix){firstFix=false;if(guideTarget){me={lat,lng};onLocatedMarker(lat,lng);renderNav();if(routeLine)map.fitBounds(routeLine.getBounds().pad(0.3));return;}onLocated(lat,lng);}
+      else{me={lat,lng};if(meMarker)meMarker.setLatLng([lat,lng]);}
+      renderNav();
+    },err=>{
+      if(err.code===1){toast('Permita a localização para usar as setas');stopGPS();}
+      else if(!me)toast('Ainda procurando o sinal de GPS…');
+    },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+  }
+  document.getElementById('locate').addEventListener('click',startGPS);
+  document.getElementById('navClose').addEventListener('click',stopGPS);
+  document.getElementById('onlyOpen').addEventListener('change',renderNav);
+  const gate=document.getElementById('gate');
+  document.getElementById('gateGps').addEventListener('click',()=>{gate.hidden=true;startGPS();});
+  document.getElementById('gateSkip').addEventListener('click',()=>{gate.hidden=true;});
 
   /* ========= COMPARTILHAR WIFI ========= */
   const scrim=document.getElementById('scrim');let shareType='open';
