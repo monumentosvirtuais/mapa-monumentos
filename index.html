@@ -51,12 +51,19 @@
   .brand b{font-size:15px;font-weight:700;letter-spacing:.02em}
   .brand span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
   .hud{display:flex;align-items:center;gap:14px;margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.07em}
+  .hud>span{white-space:nowrap}
+  .brand{min-width:0} .brand-t{min-width:0} .brand-t>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:480px){.hud-zulu{display:none}}
+  /* dentro da página do site: painel de setas compacto, para sobrar mapa */
+  body.embed .nav-row{padding:7px 12px} body.embed .nav-arrow{width:28px;height:28px}
+  body.embed .nav-guide{padding:8px 12px} body.embed .nav-guide .g-arrow{width:38px;height:38px}
+  body.embed .nav-list{max-height:42vh;overflow-y:auto}
   .hud .k{color:var(--faint)} .hud .live{color:var(--c-open)}
   .dot-live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c-open);box-shadow:0 0 8px var(--c-open);margin-right:5px;vertical-align:middle;animation:blink 1.8s infinite}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 
   /* botões canto */
-  .ctrls{position:fixed;z-index:1000;right:max(12px,env(safe-area-inset-right,0px));top:64px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .ctrls{position:fixed;z-index:1000;right:max(12px,env(safe-area-inset-right,0px));top:calc(var(--toph,56px) + 10px);display:flex;flex-direction:column;gap:8px;align-items:flex-end}
   .cbtn{display:flex;align-items:center;gap:8px;font-family:var(--sans);font-weight:600;font-size:13px;border-radius:10px;padding:10px 13px;cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.45)}
   .cbtn svg{width:15px;height:15px}
   .cbtn.share{background:linear-gradient(180deg,#161616,#121212);color:var(--c-shared);border:1px solid #33402F}
@@ -123,6 +130,7 @@
   @media (max-width:900px){
     body.nav-on .layers{bottom:calc(var(--navh,200px) + max(14px,env(safe-area-inset-bottom,0px)) + 12px)}
     body.nav-on .leaflet-bottom{margin-bottom:calc(var(--navh,200px) + 8px)}
+    body.nav-on .toast{bottom:calc(var(--navh,200px) + max(14px,env(safe-area-inset-bottom,0px)) + 64px)}
   }
   @media (prefers-reduced-motion:reduce){.nav-arrow{transition:none}}
 
@@ -234,7 +242,7 @@
   @media (max-width:560px){
     .hud{width:100%;margin-left:0;justify-content:space-between;order:3}
     .layers{width:auto;min-width:150px;max-width:230px;bottom:max(76px,calc(env(safe-area-inset-bottom,0px) + 76px))}
-    .ctrls{top:92px;gap:6px}
+    .ctrls{gap:6px}
     .cbtn{padding:9px 10px}
     .cbtn .lbl{display:none}
     .city button{padding:8px 10px;font-size:12px}
@@ -251,7 +259,7 @@
   <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><img class="brand-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="" width="30" height="30" onerror="this.remove()"><span class="brand-t"><b class="full-t">MONUMENTOSVIRTUAIS</b><b class="embed-t">MAPA WI-FI v2.0 · CAMADAS</b><span class="full-t">Arte · Corpo · Território · Rede aberta</span><span class="embed-t">Monumentos Virtuais · versão de teste</span></span></a>
   <div class="hud">
     <span><span class="dot-live" id="liveDot"></span><span class="live" id="liveTxt">AO VIVO</span></span>
-    <span><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
+    <span class="hud-zulu"><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
     <span><span class="k">PONTOS</span> <span id="total">0</span></span>
   </div>
 </div>
@@ -371,19 +379,20 @@
   const map = L.map('map',{zoomControl:false,attributionControl:true,scrollWheelZoom:!EMBED}).setView([-8.055,-34.905],12);
   if(EMBED){map.on('click',()=>map.scrollWheelZoom.enable());map.getContainer().addEventListener('mouseleave',()=>map.scrollWheelZoom.disable());}
   L.control.zoom({position:'bottomright'}).addTo(map);
+  map.attributionControl.setPrefix(false);
   // Mapa de fundo SEM chave de API.
   // Esri Dark Gray (ruas + nomes); se falhar, OpenStreetMap escurecido.
   useEsri(); // CARTO exige chave fora do domínio autorizado; Esri e OSM não
   function useEsri(){
   const esriBase=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
-    maxZoom:16, attribution:'Mapa &copy; Esri · Wi-Fi: GeoSampa/PMSP · Dados Abertos Recife'}).addTo(map);
+    maxZoom:16, attribution:'&copy; Esri · Wi-Fi: PMSP, Pref. Recife'}).addTo(map);
   const esriLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(map);
   let tileErrors=0,switched=false;
   esriBase.on('tileerror',()=>{
     if(switched||++tileErrors<6)return;
     switched=true;map.removeLayer(esriBase);map.removeLayer(esriLabels);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'osm-dark',
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Wi-Fi: GeoSampa/PMSP · Dados Abertos Recife'}).addTo(map);
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Wi-Fi: PMSP, Pref. Recife'}).addTo(map);
   });
   }
 
@@ -534,7 +543,7 @@
   }
   function coverHtml(d){
     if(d._detail===undefined)return '<div class="cover"><span class="cover-load">carregando obra…</span></div>';
-    if(d._detail===null&&!navigator.onLine)return '<div class="cover"><span class="cover-load">conecte-se a um Wi-Fi Livre para assistir</span></div>';
+    if(d._detail===null&&!isOnline)return '<div class="cover"><span class="cover-load">conecte-se a um Wi-Fi Livre para assistir</span></div>';
     const v=d._detail&&d._detail.video;
     if(!(v&&v.provider==='youtube'&&v.id))return '';
     const th=v.thumb||('https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg');
@@ -702,6 +711,8 @@
   const navEl=document.getElementById('nav'),navList=navEl.querySelector('.nav-list'),navMode=navEl.querySelector('.nav-mode');
   const ARROW='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2 19 20 12 16 5 20Z" fill="currentColor"/></svg>';
   let heading=null,watchId=null,firstFix=true,arrowRAF=0,navRows=[],guideTarget=null,arrived=false;
+  const topEl=document.querySelector('.topbar'),setTopH=()=>document.documentElement.style.setProperty('--toph',topEl.offsetHeight+'px');
+  setTopH();if(window.ResizeObserver)new ResizeObserver(setTopH).observe(topEl);
   const setNavH=()=>document.documentElement.style.setProperty('--navh',navEl.offsetHeight+'px');
   if(window.ResizeObserver)new ResizeObserver(setNavH).observe(navEl);
   function bearing(a,b){const r=Math.PI/180,f1=a.lat*r,f2=b.lat*r,dl=(b.lng-a.lng)*r;
@@ -818,7 +829,7 @@
     return caches.match('wifi.json',{ignoreSearch:true}).then(Boolean).catch(()=>false);
   }
   function refreshOffPanel(){
-    offInstall.hidden=EMBED||standalone||(!installEvt&&!isIOS);
+    offInstall.hidden=EMBED||standalone||isIOS||!installEvt;
     offInstall.textContent=isIOS?'Como instalar no iPhone':'Instalar na tela inicial';
     offOpenFull.hidden=!EMBED;
     document.getElementById('offIos').hidden=!(isIOS&&!standalone&&!EMBED);
@@ -838,16 +849,30 @@
     else if(isIOS)document.getElementById('offIos').hidden=false;
   });
   // AO VIVO / SEM INTERNET
-  function setOnline(){
-    const on=navigator.onLine;
+  // O celular às vezes diz "sem conexão" sem estar; o mapa confirma com o servidor antes de avisar.
+  let isOnline=true,probeT=null;
+  function paintOnline(on){
     document.getElementById('liveTxt').textContent=on?'AO VIVO':'SEM INTERNET';
     document.getElementById('liveTxt').classList.toggle('off',!on);
     document.getElementById('liveDot').classList.toggle('off',!on);
   }
-  window.addEventListener('online',()=>{setOnline();toast('Conectado. As obras já podem ser assistidas.');});
-  window.addEventListener('offline',()=>{setOnline();toast('Sem internet: siga as setas até um Wi-Fi Livre.');});
-  setOnline();
-  if(!navigator.onLine)setTimeout(()=>toast('Sem internet: siga as setas até um Wi-Fi Livre.'),1200);
+  function probe(){ // HEAD não passa pelo modo offline: só responde se houver rede de verdade
+    if(!/^https?:$/.test(location.protocol))return Promise.resolve(navigator.onLine!==false);
+    return fetch('manifest.webmanifest?p='+Date.now(),{method:'HEAD',cache:'no-store'}).then(r=>r.status<500).catch(()=>false);
+  }
+  function checkOnline(announce){
+    const prev=isOnline;
+    const done=on=>{
+      isOnline=on;paintOnline(on);clearTimeout(probeT);
+      if(announce&&prev!==on)toast(on?'Conectado. As obras já podem ser assistidas.':'Sem internet: siga as setas até um Wi-Fi Livre.');
+      if(!on)probeT=setTimeout(()=>checkOnline(true),20000);
+    };
+    if(navigator.onLine===false)probe().then(done);else done(true);
+  }
+  window.addEventListener('online',()=>checkOnline(true));
+  window.addEventListener('offline',()=>checkOnline(true));
+  isOnline=true;paintOnline(true);
+  if(navigator.onLine===false)probe().then(on=>{isOnline=on;paintOnline(on);if(!on){toast('Sem internet: siga as setas até um Wi-Fi Livre.');probeT=setTimeout(()=>checkOnline(true),20000);}});
   // link direto do site: .../mapa-wifi/#offline abre a janela de baixar
   if(location.hash==='#offline'&&!EMBED){document.getElementById('gate').hidden=true;scrimOff.classList.add('show');refreshOffPanel();}
 
