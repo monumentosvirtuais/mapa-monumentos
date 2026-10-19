@@ -1,0 +1,17 @@
+{
+  "name": "Monumentos Virtuais · Wi-Fi Livre",
+  "short_name": "MV Wi-Fi",
+  "description": "Encontre o Wi-Fi Livre mais perto, mesmo sem internet, e acesse os Monumentos Virtuais.",
+  "lang": "pt-BR",
+  "start_url": "./?app=1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

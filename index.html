@@ -6,7 +6,13 @@
 <title>Monumentos · Rede Aberta SP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MV Wi-Fi">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root{
     --bg:#0A0A0A; --panel:#141210; --panel-2:#181818; --line:#262626;
@@ -34,6 +40,7 @@
   .leaflet-control-attribution a{color:var(--c-me)}
   .leaflet-bar a{background:var(--panel);color:var(--fg);border-bottom-color:var(--line)}
   .leaflet-bar a:hover{background:var(--panel-2)}
+  .leaflet-bar a.leaflet-disabled{background:var(--panel);color:var(--faint)}
 
   /* HUD topo */
   .topbar{position:fixed;z-index:1000;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
@@ -126,6 +133,18 @@
   .ficha div{display:flex;flex-direction:column}
   .ficha small{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
   .ficha span{font-size:12.5px;color:#D2CCC4}
+
+  .cbtn.off{background:#161616;color:#F2EDE6;border:1px solid #2E2E2E}
+  .cbtn.off:hover{border-color:#8C8780}
+  .off-lead{margin:0;font-size:14.5px;line-height:1.55;color:var(--fg)}
+  .off-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:13.5px;line-height:1.5;color:#D2CCC4}
+  .off-steps b{color:var(--fg);font-weight:600}
+  .off-status{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted)}
+  .off-status.ok{color:#A8C686}
+  .off-note{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+  a.btn{text-decoration:none;display:inline-flex;align-items:center}
+  .dot-live.off{background:#D9A86C;box-shadow:0 0 8px #D9A86C}
+  .live.off{color:#D9A86C}
 
   /* marcadores */
   .mk{border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
@@ -229,7 +248,7 @@
 <div class="topbar">
   <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><img class="brand-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="" width="30" height="30" onerror="this.remove()"><span class="brand-t"><b class="full-t">MONUMENTOSVIRTUAIS</b><b class="embed-t">MAPA WI-FI v2.0 · CAMADAS</b><span class="full-t">Arte · Corpo · Território · Rede aberta</span><span class="embed-t">Monumentos Virtuais · versão de teste</span></span></a>
   <div class="hud">
-    <span><span class="dot-live"></span><span class="live">AO VIVO</span></span>
+    <span><span class="dot-live" id="liveDot"></span><span class="live" id="liveTxt">AO VIVO</span></span>
     <span><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
     <span><span class="k">PONTOS</span> <span id="total">0</span></span>
   </div>
@@ -238,6 +257,8 @@
   <div class="city" id="city"><button type="button" data-c="recife" aria-pressed="true">Recife</button><button type="button" data-c="pe" aria-pressed="false">Pernambuco</button><button type="button" data-c="sp" aria-pressed="false">São Paulo</button><button type="button" data-c="all" aria-pressed="false">Todos</button></div>
   <button class="cbtn share" id="shareOpen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg><span class="lbl">Compartilhar Wi-Fi</span></button>
+  <button class="cbtn off" id="offOpen" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="lbl">Usar sem internet</span></button>
   <button class="cbtn mon" id="monOpen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg><span class="lbl">Criar monumento</span></button>
 </div>
@@ -296,10 +317,29 @@
   </div>
 </div>
 
+<div class="scrim" id="scrimOff">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="offTitle">
+    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></div>
+      <div><b id="offTitle">Leve o mapa com você</b><span>funciona mesmo sem internet</span></div></div>
+    <div class="mb">
+      <p class="off-lead">Ficou sem dados no celular? O mapa continua funcionando. Baixe agora, enquanto está conectado.</p>
+      <ol class="off-steps">
+        <li><b>Sem internet, abra o app.</b> O GPS funciona por satélite e mostra onde você está.</li>
+        <li><b>Siga as setas até o Wi-Fi Livre mais perto.</b> São mais de 2.300 pontos gratuitos no Recife e em São Paulo.</li>
+        <li><b>Conectado, entre nos Monumentos Virtuais.</b> Assista às obras e conheça os artistas pela plataforma.</li>
+      </ol>
+      <p class="off-status" id="offStatus">Verificando…</p>
+      <p class="off-note" id="offIos" hidden>No iPhone: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p>
+      <p class="off-note">O fundo de ruas fica salvo nas áreas que você já abriu no mapa.</p>
+    </div>
+    <div class="mf"><button class="btn" id="offClose" type="button">Fechar</button><button class="btn primaryP" id="offInstall" type="button">Instalar na tela inicial</button><a class="btn primaryP" id="offOpenFull" href="./?app=1" target="_blank" rel="noopener" hidden>Abrir o mapa completo</a></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/leaflet.markercluster.js"></script>
 <script>
 (function(){
   "use strict";
@@ -487,11 +527,12 @@
   // detalhes da obra vindos do próprio site (capa do vídeo, descrição, ficha técnica)
   const monCache={};
   function getMonument(slug){
-    if(!monCache[slug])monCache[slug]=fetch(SITE+'/wp-json/mv3/v1/monuments/'+encodeURIComponent(slug)).then(r=>{if(!r.ok)throw 0;return r.json();}).catch(()=>null);
+    if(!monCache[slug])monCache[slug]=fetch(SITE+'/wp-json/mv3/v1/monuments/'+encodeURIComponent(slug)).then(r=>{if(!r.ok)throw 0;return r.json();}).catch(()=>{delete monCache[slug];return null;});
     return monCache[slug];
   }
   function coverHtml(d){
     if(d._detail===undefined)return '<div class="cover"><span class="cover-load">carregando obra…</span></div>';
+    if(d._detail===null&&!navigator.onLine)return '<div class="cover"><span class="cover-load">conecte-se a um Wi-Fi Livre para assistir</span></div>';
     const v=d._detail&&d._detail.video;
     if(!(v&&v.provider==='youtube'&&v.id))return '';
     const th=v.thumb||('https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg');
@@ -503,7 +544,7 @@
     return '<div class="ficha">'+f.slice(0,4).map(x=>`<div><small>${esc(x.role)}</small><span>${esc((x.people||[]).join(', '))}</span></div>`).join('')+'</div>';
   }
   function fillMonument(popup,d){
-    if(d._detail!==undefined||!d.slug)return;
+    if(d._detail||!d.slug)return;
     getMonument(d.slug).then(m=>{d._detail=m||null;if(popup.isOpen())popup.update();});
   }
   // tocar o vídeo dentro da janela
@@ -751,6 +792,53 @@
   document.getElementById('gateGps').addEventListener('click',()=>{gate.hidden=true;startGPS();});
   document.getElementById('gateSkip').addEventListener('click',()=>{gate.hidden=true;});
 
+  /* ========= SEM INTERNET (app instalável) ========= */
+  let installEvt=null;
+  const scrimOff=document.getElementById('scrimOff'),offStatus=document.getElementById('offStatus');
+  const offInstall=document.getElementById('offInstall'),offOpenFull=document.getElementById('offOpenFull');
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  const canSW='serviceWorker' in navigator&&/^https?:$/.test(location.protocol);
+  if(canSW&&!EMBED)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;});
+  function offlineReady(){
+    if(!('caches' in window))return Promise.resolve(false);
+    return caches.match('wifi.json',{ignoreSearch:true}).then(Boolean).catch(()=>false);
+  }
+  function refreshOffPanel(){
+    offInstall.hidden=EMBED||standalone||(!installEvt&&!isIOS);
+    offInstall.textContent=isIOS?'Como instalar no iPhone':'Instalar na tela inicial';
+    offOpenFull.hidden=!EMBED;
+    document.getElementById('offIos').hidden=!(isIOS&&!standalone&&!EMBED);
+    if(EMBED){offStatus.textContent='Abra o mapa completo para salvá-lo no seu aparelho.';offStatus.className='off-status';return;}
+    if(!canSW){offStatus.textContent='Este navegador não permite salvar o mapa.';offStatus.className='off-status';return;}
+    offStatus.textContent='Preparando o mapa para uso sem internet…';offStatus.className='off-status';
+    navigator.serviceWorker.ready.then(()=>offlineReady()).then(ok=>{
+      offStatus.textContent=ok?(standalone?'✓ Instalado e pronto para usar sem internet':'✓ Mapa e pontos de Wi-Fi salvos neste aparelho'):'Ainda baixando… mantenha a conexão por alguns segundos.';
+      offStatus.className='off-status'+(ok?' ok':'');
+    });
+  }
+  document.getElementById('offOpen').addEventListener('click',()=>{scrimOff.classList.add('show');refreshOffPanel();});
+  document.getElementById('offClose').addEventListener('click',()=>scrimOff.classList.remove('show'));
+  scrimOff.addEventListener('click',e=>{if(e.target===scrimOff)scrimOff.classList.remove('show');});
+  offInstall.addEventListener('click',()=>{
+    if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;refreshOffPanel();});}
+    else if(isIOS)document.getElementById('offIos').hidden=false;
+  });
+  // AO VIVO / SEM INTERNET
+  function setOnline(){
+    const on=navigator.onLine;
+    document.getElementById('liveTxt').textContent=on?'AO VIVO':'SEM INTERNET';
+    document.getElementById('liveTxt').classList.toggle('off',!on);
+    document.getElementById('liveDot').classList.toggle('off',!on);
+  }
+  window.addEventListener('online',()=>{setOnline();toast('Conectado. As obras já podem ser assistidas.');});
+  window.addEventListener('offline',()=>{setOnline();toast('Sem internet: siga as setas até um Wi-Fi Livre.');});
+  setOnline();
+  if(!navigator.onLine)setTimeout(()=>toast('Sem internet: siga as setas até um Wi-Fi Livre.'),1200);
+  // link direto do site: .../mapa-wifi/#offline abre a janela de baixar
+  if(location.hash==='#offline'&&!EMBED){document.getElementById('gate').hidden=true;scrimOff.classList.add('show');refreshOffPanel();}
+
   /* ========= COMPARTILHAR WIFI ========= */
   const scrim=document.getElementById('scrim');let shareType='open';
   document.getElementById('shareOpen').onclick=()=>scrim.classList.add('show');
@@ -784,7 +872,7 @@
   };
   function persist(key,arr){try{localStorage.setItem(key,JSON.stringify(arr.map(d=>({name:d.name,bairro:d.bairro,year:d.year,origin:d.origin,lat:d.lat,lng:d.lng,hist:d.hist,access:d.access}))));}catch(e){}}
 
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');scrimM.classList.remove('show');}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');scrimM.classList.remove('show');scrimOff.classList.remove('show');}});
 
   /* ========= RELÓGIO ========= */
   function tick(){const t=new Date();document.getElementById('zulu').textContent=[t.getUTCHours(),t.getUTCMinutes(),t.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':')+'Z';}
