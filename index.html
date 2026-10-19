@@ -316,19 +316,19 @@
   useEsri(); // CARTO exige chave fora do domínio autorizado; Esri e OSM não
   function useEsri(){
   const esriBase=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
-    maxZoom:16, attribution:'Mapa &copy; Esri · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
+    maxZoom:16, attribution:'Mapa &copy; Esri · Wi-Fi: GeoSampa/PMSP · Dados Abertos Recife'}).addTo(map);
   const esriLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(map);
   let tileErrors=0,switched=false;
   esriBase.on('tileerror',()=>{
     if(switched||++tileErrors<6)return;
     switched=true;map.removeLayer(esriBase);map.removeLayer(esriLabels);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'osm-dark',
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Wi-Fi: GeoSampa/PMSP · Dados Abertos Recife'}).addTo(map);
   });
   }
 
   const COLORS={open:'#8FBF9F',public:'#D9D4CB',shared:'#A8C686',mon:'#C67033',acc:'#E3A46F'};
-  const LABEL={open:'Wi-Fi nas Favelas',public:'Wi-Fi Livre SP',shared:'Compartilhado por pessoas',mon:'Monumentos Virtuais',acc:'Pontos de Acesso'};
+  const LABEL={open:'Wi-Fi nas Favelas',public:'Wi-Fi livre',shared:'Compartilhado por pessoas',mon:'Monumentos Virtuais',acc:'Pontos de Acesso'};
   // lugares onde o sinal fica na rua (dá pra usar a qualquer hora)
   const OUTDOOR=/^(praça|parque|abrigo de ônibus|ponto turístico|wifi nas favelas)$/i;
   const canvasR=L.canvas({padding:0.5});
@@ -447,8 +447,8 @@
       ? `<span class="chip ok">compartilhado por morador</span>${d.access==='open'?'<span class="chip ok">entra direto</span>':'<span class="chip">senha de convidado</span>'}`
       : (d.outdoor ? '<span class="chip ok">ao ar livre · qualquer hora</span>' : '<span class="chip warn">dentro do local · horário de funcionamento</span>');
     return `<div class="pp"><div class="bar" style="background:${COLORS[d.layer]}"></div><div class="bd">
-      <div class="type" style="color:${COLORS[d.layer]}">${LABEL[d.layer]}</div>
-      <h3>${esc(d.name)}</h3><p class="addr">${esc(d.addr||'ponto de acesso')}</p>${dist}
+      <div class="type" style="color:${COLORS[d.layer]}">${LABEL[d.layer]}${d.prog?' · '+esc(d.prog):''}</div>
+      <h3>${esc(d.name)}</h3>${d.addr?`<p class="addr">${esc(d.addr)}</p>`:''}${dist}
       <div class="chips">${chips}<span class="chip">gratuita</span></div>
       <button class="actbtn route" type="button" data-guide><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Guiar até aqui</button>
     </div></div>`;
@@ -508,9 +508,13 @@
   // GeoSampa: nm_equipamento = tipo de lugar, tx_endereco_equipamento = endereço
   function wifiFromFeature(p,lat,lng){
     const tipo=String((p&&p.nm_equipamento)||'').trim()||'Ponto de Wi-Fi Livre';
-    return {layer:'public',name:tipo,addr:(p&&p.tx_endereco_equipamento)||'São Paulo',lat,lng,outdoor:OUTDOOR.test(tipo)};
+    const prog=(p&&p.cidade==='Recife')?'Conecta Recife':'Wi-Fi Livre SP';
+    return {layer:'public',name:tipo,addr:(p&&p.tx_endereco_equipamento)||'',lat,lng,prog,
+      outdoor:(p&&typeof p.outdoor==='boolean')?p.outdoor:OUTDOOR.test(tipo)};
   }
 
+  const wifiCount={sp:0,rec:0,spFallback:false};
+  function updSrc(){const t=[];if(wifiCount.sp)t.push(wifiCount.sp.toLocaleString('pt-BR')+(wifiCount.spFallback?' SP (referência)':' SP'));if(wifiCount.rec)t.push(wifiCount.rec.toLocaleString('pt-BR')+' Recife');setSrc(t.length?'Wi-Fi livre: '+t.join(' · '):'Wi-Fi: carregando…',wifiCount.spFallback?'warn':'ok');}
   function setSrc(txt,cls){const s=document.getElementById('demo');s.textContent=txt;s.className='src '+(cls||'');}
   function fetchFirst(urls){
     let i=0;
@@ -538,14 +542,23 @@
           if(Math.abs(lat)>90){const t=lat;lat=lng;lng=t;} // segurança se vier invertido
           register(wifiFromFeature(f.properties,lat,lng));
         });
-        setSrc('Wi-Fi: '+feats.length+' pontos oficiais · GeoSampa/PMSP','ok');
+        wifiCount.sp=feats.length;updSrc();
         refresh();
       })
       .catch(()=>{
         WIFI_FALLBACK.forEach(d=>register({layer:'public',name:d.name,addr:'ponto de referência',lat:d.lat,lng:d.lng,outdoor:true}));
-        setSrc('Wi-Fi: '+WIFI_FALLBACK.length+' pontos de referência · ative o proxy no servidor','warn');
+        wifiCount.sp=WIFI_FALLBACK.length;wifiCount.spFallback=true;updSrc();
         refresh();
       });
+  }
+
+  // Conecta Recife (dados abertos da Prefeitura do Recife), arquivo na mesma pasta
+  function loadWifiRecife(){
+    if(location.protocol==='file:')return;
+    fetch('wifi-recife.json').then(r=>{if(!r.ok)throw 0;return r.json();}).then(gj=>{
+      (gj.features||[]).forEach(f=>{const g=f.geometry;if(!g||g.type!=='Point')return;const[lng,lat]=g.coordinates;register(wifiFromFeature(f.properties,lat,lng));});
+      wifiCount.rec=(gj.features||[]).length;updSrc();refresh();
+    }).catch(()=>{});
   }
 
   /* ========= CAMADAS / FILTRO ========= */
@@ -751,6 +764,7 @@
   }
   loadSite();
   loadWifiLive();
+  loadWifiRecife();
 })();
 </script>
 </body>
