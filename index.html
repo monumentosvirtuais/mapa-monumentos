@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MV Wi-Fi">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <style>
   :root{
     --bg:#0A0A0A; --panel:#141210; --panel-2:#181818; --line:#262626;
@@ -118,9 +119,10 @@
   .nav-stop{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 10px;cursor:pointer}
   .nav-stop:hover{color:var(--fg);border-color:var(--muted)}
   body.nav-on .locate{display:none}
+  body.nav-on .toast{bottom:calc(var(--navh,200px) + max(14px,env(safe-area-inset-bottom,0px)) + 14px)}
   @media (max-width:900px){
-    body.nav-on .layers{bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 215px)}
-    body.nav-on .leaflet-bottom{margin-bottom:205px}
+    body.nav-on .layers{bottom:calc(var(--navh,200px) + max(14px,env(safe-area-inset-bottom,0px)) + 12px)}
+    body.nav-on .leaflet-bottom{margin-bottom:calc(var(--navh,200px) + 8px)}
   }
   @media (prefers-reduced-motion:reduce){.nav-arrow{transition:none}}
 
@@ -162,7 +164,7 @@
   .brand-ic{width:30px;height:30px;border-radius:7px;flex:none}
   .brand-t{display:flex;flex-direction:column;line-height:1.1}
   .embed-t{display:none!important}
-  body.embed .full-t{display:none!important} body.embed .embed-t{display:block!important}
+
   .brand b{font-weight:800;letter-spacing:.05em}
   .me-mk{border-radius:50%;background:var(--c-me);box-shadow:0 0 0 4px rgba(127,178,229,.3),0 0 10px var(--c-me)}
 
@@ -310,7 +312,7 @@
     <img class="gate-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="Monumentos Virtuais" width="56" height="56" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'gate-mark',innerHTML:'<i></i>'}))">
     <h1 id="gateTitle">MONUMENTOSVIRTUAIS</h1>
     <p class="gate-sub">Arte · Corpo · Território</p>
-    <p>Ative o GPS para encontrar os monumentos, os pontos de acesso e o Wi-Fi livre mais perto de você. As setas mostram para onde ir.</p>
+    <p>Ative o GPS para encontrar os monumentos, os pontos de acesso e o Wi-Fi Livre mais perto de você. As setas mostram para onde ir.</p>
     <button class="btn-gps" id="gateGps" type="button">Ativar GPS</button>
     <button class="btn-skip" id="gateSkip" type="button">Só explorar o mapa</button>
     <small>Sua localização fica só no seu aparelho.</small>
@@ -500,7 +502,7 @@
   /* ========= POPUPS ========= */
   function gmaps(d){return `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=walking`;}
   function wifiPopup(d){
-    const dist = me ? `<p class="dist">◎ ${haversine(me,d).toFixed(2)} km · ~${Math.max(1,Math.round(haversine(me,d)/0.075))} min a pé</p>`:'';
+    const dist = me ? `<p class="dist">◎ ${fmtDist(haversine(me,d))} · ~${Math.max(1,Math.round(haversine(me,d)/0.075))} min a pé</p>`:'';
     const chips = d.layer==='shared'
       ? `<span class="chip ok">compartilhado por morador</span>${d.access==='open'?'<span class="chip ok">entra direto</span>':'<span class="chip">senha de convidado</span>'}`
       : (d.outdoor ? '<span class="chip ok">ao ar livre · qualquer hora</span>' : '<span class="chip warn">dentro do local · horário de funcionamento</span>');
@@ -554,7 +556,7 @@
     c.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0&playsinline=1" title="vídeo do monumento" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   });
   function accPopup(d){
-    const dist = me ? `<p class="dist">◎ ${haversine(me,d).toFixed(2)} km</p>`:'';
+    const dist = me ? `<p class="dist">◎ ${fmtDist(haversine(me,d))}</p>`:'';
     return `<div class="pp"><div class="bar" style="background:${COLORS.acc}"></div><div class="bd">
       <div class="type" style="color:${COLORS.acc}">${LABEL.acc}</div>
       <h3>${esc(d.name)}</h3>${dist}
@@ -693,13 +695,15 @@
     if(routeLine)map.removeLayer(routeLine);
     if(best){routeLine=L.polyline([[lat,lng],[best.lat,best.lng]],{color:'#E3A46F',weight:3,dashArray:'8 7',opacity:.95}).addTo(map);
       map.fitBounds(routeLine.getBounds().pad(0.4));
-      toast(`Mais perto: ${best.name} · ${bd.toFixed(2)} km`);
+      toast(`Mais perto: ${best.name} · ${fmtDist(bd)}`);
     } else {map.setView([lat,lng],15);toast('Nenhuma rede aberta por perto nas camadas ativas');}
   }
   /* ========= GPS CONTÍNUO + BÚSSOLA + SETAS ========= */
   const navEl=document.getElementById('nav'),navList=navEl.querySelector('.nav-list'),navMode=navEl.querySelector('.nav-mode');
   const ARROW='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2 19 20 12 16 5 20Z" fill="currentColor"/></svg>';
   let heading=null,watchId=null,firstFix=true,arrowRAF=0,navRows=[],guideTarget=null,arrived=false;
+  const setNavH=()=>document.documentElement.style.setProperty('--navh',navEl.offsetHeight+'px');
+  if(window.ResizeObserver)new ResizeObserver(setNavH).observe(navEl);
   function bearing(a,b){const r=Math.PI/180,f1=a.lat*r,f2=b.lat*r,dl=(b.lng-a.lng)*r;
     return (Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))/r+360)%360;}
   function fmtDist(km){return km<1?Math.round(km*1000)+' m':(km<10?km.toFixed(1).replace('.',','):Math.round(km))+' km';}
@@ -730,10 +734,18 @@
   navList.addEventListener('click',e=>{
     if(e.target.closest('[data-stop]')){stopGuide();return;}
     const b=e.target.closest('.nav-row');if(!b)return;const r=navRows[+b.dataset.i];if(!r)return;
-    const m=r.t.d._m,g=groups[r.t.d.layer];
-    if(m&&g&&g.zoomToShowLayer)g.zoomToShowLayer(m,()=>m.openPopup());
-    else{map.flyTo([r.t.d.lat,r.t.d.lng],16);if(m)map.once('moveend',()=>m.openPopup());}
+    openPoint(r.t.d);
   });
+  // abre a janela de um ponto; só a ordem mais recente vale (evita janelas antigas reabrindo)
+  let openTok=0;
+  function openPoint(d){
+    const m=d&&d._m;if(!m)return;
+    const tok=++openTok,g=groups[d.layer],go=()=>{if(tok===openTok)m.openPopup();};
+    if(g&&g.zoomToShowLayer){g.zoomToShowLayer(m,go);return;}
+    const t=L.latLng(d.lat,d.lng);
+    if(map.getZoom()>=15&&map.getBounds().pad(-0.15).contains(t))go();
+    else{map.once('moveend',go);map.flyTo(t,16,{duration:0.8});}
+  }
   function onOrient(e){
     let h=null;
     if(typeof e.webkitCompassHeading==='number')h=e.webkitCompassHeading;
@@ -849,12 +861,16 @@
     const ssid=(document.getElementById('ssid').value||'Rede compartilhada').trim();
     const d={layer:'shared',name:ssid,addr:'compartilhado por você',lat,lng,access:shareType};
     register(d);persist('mv_wifi',store.shared);refresh();scrim.classList.remove('show');toast('✓ "'+ssid+'" no mapa');
-    const mk=groups.shared.getLayers().slice(-1)[0];if(mk)mk.openPopup();
+    openPoint(d);
   }
-  document.getElementById('mAdd').onclick=()=>{
-    if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>addShared(p.coords.latitude,p.coords.longitude),()=>addShared(map.getCenter().lat,map.getCenter().lng),{timeout:6000});}
-    else addShared(map.getCenter().lat,map.getCenter().lng);
-  };
+  function withPosition(cb){
+    if(me)return cb(me.lat,me.lng);
+    const c=map.getCenter();
+    if(!navigator.geolocation)return cb(c.lat,c.lng);
+    toast('Localizando…');
+    navigator.geolocation.getCurrentPosition(p=>cb(p.coords.latitude,p.coords.longitude),()=>cb(c.lat,c.lng),{timeout:6000,maximumAge:60000});
+  }
+  document.getElementById('mAdd').onclick=()=>withPosition(addShared);
 
   /* ========= CRIAR MONUMENTO ========= */
   const scrimM=document.getElementById('scrimM');
@@ -864,12 +880,9 @@
   function addMon(lat,lng){
     const d={layer:'mon',name:(document.getElementById('mName').value||'Monumento').trim(),bairro:(document.getElementById('mBairro').value||'—').trim(),year:(document.getElementById('mYear').value||'—').trim(),origin:'usuario',lat,lng,hist:(document.getElementById('mHist').value||'').trim()};
     register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'));refresh();scrimM.classList.remove('show');toast('✓ Monumento "'+d.name+'" erguido');
-    const mk=groups.mon.getLayers().slice(-1)[0];if(mk){if(groups.mon.zoomToShowLayer)groups.mon.zoomToShowLayer(mk,()=>mk.openPopup());else mk.openPopup();}
+    openPoint(d);
   }
-  document.getElementById('mAdd2').onclick=()=>{
-    if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>addMon(p.coords.latitude,p.coords.longitude),()=>addMon(map.getCenter().lat,map.getCenter().lng),{timeout:6000});}
-    else addMon(map.getCenter().lat,map.getCenter().lng);
-  };
+  document.getElementById('mAdd2').onclick=()=>withPosition(addMon);
   function persist(key,arr){try{localStorage.setItem(key,JSON.stringify(arr.map(d=>({name:d.name,bairro:d.bairro,year:d.year,origin:d.origin,lat:d.lat,lng:d.lng,hist:d.hist,access:d.access}))));}catch(e){}}
 
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');scrimM.classList.remove('show');scrimOff.classList.remove('show');}});
