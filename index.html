@@ -151,6 +151,8 @@
   .off-steps b{color:var(--fg);font-weight:600}
   .off-status{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted)}
   .off-status.ok{color:#A8C686}
+  .off-how{display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:#D2CCC4;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .off-how p{margin:0} .off-how b{color:var(--fg)}
   .off-note{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
   a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .dot-live.off{background:#D9A86C;box-shadow:0 0 8px #D9A86C}
@@ -339,10 +341,10 @@
         <li><b>Conectado, entre nos Monumentos Virtuais.</b> Assista às obras e conheça os artistas pela plataforma.</li>
       </ol>
       <p class="off-status" id="offStatus">Verificando…</p>
-      <p class="off-note" id="offIos" hidden>No iPhone: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p>
+      <div class="off-how" id="offIos" hidden><p><b>iPhone:</b> toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p><p><b>Android:</b> toque no menu <b>⋮</b> do navegador e depois em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).</p></div>
       <p class="off-note">O fundo de ruas fica salvo nas áreas que você já abriu no mapa.</p>
     </div>
-    <div class="mf"><button class="btn" id="offClose" type="button">Fechar</button><button class="btn primaryP" id="offInstall" type="button">Instalar na tela inicial</button><a class="btn primaryP" id="offOpenFull" href="./?app=1" target="_blank" rel="noopener" hidden>Abrir o mapa completo</a></div>
+    <div class="mf"><button class="btn" id="offClose" type="button">Fechar</button><button class="btn primaryP" id="offInstall" type="button">Como instalar no Mobile</button><a class="btn primaryP" id="offOpenFull" href="./?app=1" target="_blank" rel="noopener" hidden>Abrir o mapa completo</a></div>
   </div>
 </div>
 
@@ -819,7 +821,6 @@
   let installEvt=null;
   const scrimOff=document.getElementById('scrimOff'),offStatus=document.getElementById('offStatus');
   const offInstall=document.getElementById('offInstall'),offOpenFull=document.getElementById('offOpenFull');
-  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
   const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
   const canSW='serviceWorker' in navigator&&/^https?:$/.test(location.protocol);
   if(canSW&&!EMBED)navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -829,10 +830,8 @@
     return caches.match('wifi.json',{ignoreSearch:true}).then(Boolean).catch(()=>false);
   }
   function refreshOffPanel(){
-    offInstall.hidden=EMBED||standalone||isIOS||!installEvt;
-    offInstall.textContent=isIOS?'Como instalar no iPhone':'Instalar na tela inicial';
+    offInstall.hidden=EMBED||standalone;
     offOpenFull.hidden=!EMBED;
-    document.getElementById('offIos').hidden=!(isIOS&&!standalone&&!EMBED);
     if(EMBED){offStatus.textContent='Abra o mapa completo para salvá-lo no seu aparelho.';offStatus.className='off-status';return;}
     if(!canSW){offStatus.textContent='Este navegador não permite salvar o mapa.';offStatus.className='off-status';return;}
     offStatus.textContent='Preparando o mapa para uso sem internet…';offStatus.className='off-status';
@@ -846,7 +845,7 @@
   scrimOff.addEventListener('click',e=>{if(e.target===scrimOff)scrimOff.classList.remove('show');});
   offInstall.addEventListener('click',()=>{
     if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;refreshOffPanel();});}
-    else if(isIOS)document.getElementById('offIos').hidden=false;
+    else{const how=document.getElementById('offIos');how.hidden=false;how.scrollIntoView({block:'nearest',behavior:'smooth'});}
   });
   // AO VIVO / SEM INTERNET
   // O celular às vezes diz "sem conexão" sem estar; o mapa confirma com o servidor antes de avisar.
