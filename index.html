@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<title>Monumentos · Rede Aberta SP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg:#0A0A0A; --panel:#111111; --panel-2:#181818; --line:#262626;
+    --fg:#EDE9E3; --muted:#8C8780; --faint:#4F4B46;
+    --c-open:#8FBF9F; --c-public:#D9D4CB; --c-mon:#C67033; --c-shared:#A8C686; --c-me:#7FB2E5;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Archivo',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+  #map{position:fixed;inset:0;background:#0A0A0A}
+  .leaflet-container{background:#0A0A0A;font-family:var(--sans)}
+  .osm-dark{filter:invert(1) hue-rotate(200deg) brightness(.85) contrast(.9) saturate(.5)}
+  .src{margin-top:8px;padding:7px 8px 2px;border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase;line-height:1.4}
+  .src.ok{color:var(--c-open)} .src.warn{color:var(--c-public)}
+  .city{display:flex;background:rgba(17,17,17,.92);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .city button{background:none;border:none;color:var(--muted);font-family:var(--sans);font-size:12.5px;font-weight:600;padding:9px 12px;cursor:pointer}
+  .city button[aria-pressed=true]{color:var(--fg);background:var(--panel-2)}
+  .city button+button{border-left:1px solid var(--line)}
+  .leaflet-popup-content{max-height:none}
+  .leaflet-control-attribution{background:rgba(10,10,10,.7);color:var(--muted);font-size:10px}
+  .leaflet-control-attribution a{color:var(--c-me)}
+  .leaflet-bar a{background:var(--panel);color:var(--fg);border-bottom-color:var(--line)}
+  .leaflet-bar a:hover{background:var(--panel-2)}
+
+  /* HUD topo */
+  .topbar{position:fixed;z-index:1000;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px max(16px,env(safe-area-inset-left,0px));padding-top:max(10px,env(safe-area-inset-top,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+    background:linear-gradient(180deg,rgba(10,10,10,.95),rgba(10,10,10,.35));backdrop-filter:blur(6px);pointer-events:none}
+  .brand{display:flex;flex-direction:column;line-height:1.1}
+  .brand b{font-size:15px;font-weight:700;letter-spacing:.02em}
+  .brand span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+  .hud{display:flex;align-items:center;gap:14px;margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.07em}
+  .hud .k{color:var(--faint)} .hud .live{color:var(--c-open)}
+  .dot-live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c-open);box-shadow:0 0 8px var(--c-open);margin-right:5px;vertical-align:middle;animation:blink 1.8s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* botões canto */
+  .ctrls{position:fixed;z-index:1000;right:max(12px,env(safe-area-inset-right,0px));top:64px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .cbtn{display:flex;align-items:center;gap:8px;font-family:var(--sans);font-weight:600;font-size:13px;border-radius:10px;padding:10px 13px;cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.45)}
+  .cbtn svg{width:15px;height:15px}
+  .cbtn.share{background:linear-gradient(180deg,#161616,#121212);color:var(--c-shared);border:1px solid #33402F}
+  .cbtn.mon{background:linear-gradient(180deg,#2A1A10,#1E140D);color:var(--c-mon);border:1px solid #7A4520}
+  .cbtn.share:hover{border-color:var(--c-shared)} .cbtn.mon:hover{border-color:var(--c-mon)}
+
+  /* camadas */
+  .layers{position:fixed;z-index:1000;left:max(12px,env(safe-area-inset-left,0px));bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 16px));
+    background:rgba(17,17,17,.92);border:1px solid var(--line);border-radius:12px;padding:10px;backdrop-filter:blur(8px);width:240px;max-width:calc(100vw - 24px)}
+  .layers h4{margin:2px 2px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .layer{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;user-select:none}
+  .layer:hover{background:var(--panel-2)}
+  .swatch{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor}
+  .layer .nm{font-size:12.5px;flex:1;min-width:0} .layer .ct{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .layer.off{opacity:.42} .layer.off .swatch{box-shadow:none!important;background:var(--faint)!important;color:var(--faint)!important}
+  .filter{margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
+  .filter label{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px}
+  .sw{position:relative;width:34px;height:19px;border-radius:999px;background:var(--line);flex:none;transition:.15s}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--muted);transition:.15s}
+  .filter input{position:absolute;opacity:0;pointer-events:none}
+  .filter input:checked + .sw{background:#2E3A2E} .filter input:checked + .sw::after{left:17px;background:var(--c-open)}
+
+  /* localizar */
+  .locate{position:fixed;z-index:1000;left:50%;transform:translateX(-50%);bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 16px));
+    display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:#FFF4EA;background:linear-gradient(180deg,#C67033,#9E5422);border:1px solid #E08A4A;border-radius:999px;padding:13px 20px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.55)}
+  .locate:hover{border-color:var(--c-me)} .locate svg{width:18px;height:18px}
+
+  /* marcadores */
+  .mk{border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+  .mk.pulse{animation:mkp 3s ease-out infinite}
+  @keyframes mkp{0%{box-shadow:0 0 0 0 currentColor}70%{box-shadow:0 0 0 12px rgba(0,0,0,0)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
+  .mv-cluster{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-weight:600;font-size:13px;
+    color:#FFF4EA;background:radial-gradient(circle,#C67033 0 55%,rgba(198,112,51,.25) 56%);box-shadow:0 0 14px rgba(198,112,51,.55)}
+  .marker-cluster-anim .leaflet-marker-icon,.marker-cluster-anim .leaflet-marker-shadow{transition:transform .3s ease-out,opacity .3s ease-in}
+  .mk-mon{width:24px;height:24px;border-radius:6px;background:var(--c-mon);display:grid;place-items:center;
+    box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 12px rgba(198,112,51,.45);transition:transform .15s}
+  .mk-mon i{width:7px;height:7px;background:#FFF4EA;transform:rotate(45deg);display:block}
+  .mk-mon:hover{transform:scale(1.12)}
+  .mk-acc{width:16px;height:16px;border-radius:50%;background:#0A0A0A;border:3px solid #E3A46F;box-shadow:0 0 10px rgba(227,164,111,.4)}
+  .brand{color:inherit;text-decoration:none;pointer-events:auto}
+  .brand b{font-weight:800;letter-spacing:.05em}
+  .me-mk{border-radius:50%;background:var(--c-me);box-shadow:0 0 0 4px rgba(127,178,229,.3),0 0 10px var(--c-me)}
+
+  /* popup */
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+  .leaflet-popup-tip{background:var(--panel);border:1px solid var(--line)}
+  .leaflet-popup-content{margin:0;width:286px!important}
+  .leaflet-popup-close-button{color:var(--muted)!important;top:8px!important;right:9px!important;font-size:20px!important}
+  .pp{padding:0}
+  .pp .bar{height:4px;border-radius:14px 14px 0 0}
+  .pp .bd{padding:13px 15px}
+  .pp .type{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:5px}
+  .pp h3{margin:0 0 3px;font-size:16px;font-weight:700}
+  .pp .addr{color:var(--muted);font-size:12px;margin:0 0 10px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .chip{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:999px;border:1px solid var(--line);color:var(--fg);background:var(--panel-2)}
+  .chip.ok{color:var(--c-open);border-color:#33402F} .chip.warn{color:var(--c-public);border-color:#4A3A28}
+  .chip.oficial{color:var(--c-mon);border-color:#7A4520} .chip.comunitario{color:#E7A0B4;border-color:#5A2E3C} .chip.usuario{color:#9EC3E6;border-color:#2F4659} .chip.acervo{color:var(--c-mon);border-color:#7A4520}
+  .pp .artist{color:#E3A46F;font-size:12px;margin:0 0 9px;font-weight:600}
+  .actbtn.mon{color:var(--c-mon);background:#1E140D;border-color:#7A4520}
+  .dist{font-family:var(--mono);font-size:12px;color:var(--c-me);margin:0 0 9px}
+  .m3d{position:relative;height:150px;border-radius:10px;border:1px solid #3A2A1E;background:#100C09;overflow:hidden;margin-bottom:10px}
+  .m3d canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+  .m3d canvas:active{cursor:grabbing}
+  .m3d .tag{position:absolute;left:8px;top:7px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:#D69A6A;text-transform:uppercase;z-index:2}
+  .m3d .hint{position:absolute;left:8px;bottom:6px;font-family:var(--mono);font-size:9px;color:#E8D3BF;opacity:.85;z-index:2}
+  .m3d .ex{position:absolute;right:8px;bottom:6px;font-family:var(--mono);font-size:9px;color:#9C7A5E;z-index:2}
+  .hist{font-size:12.5px;line-height:1.55;color:#D2CCC4;margin:0 0 10px}
+  .actbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;text-decoration:none;font-weight:600;font-size:12.5px;border-radius:9px;padding:10px;cursor:pointer;border:1px solid;margin-top:4px}
+  .actbtn.route{color:#FFF4EA;background:linear-gradient(180deg,#C67033,#9E5422);border-color:#E08A4A}
+  .actbtn svg{width:14px;height:14px}
+
+  /* modais */
+  .scrim{position:fixed;inset:0;z-index:2000;background:rgba(6,6,6,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:18px}
+  .scrim.show{display:flex}
+  .modal{width:400px;max-width:100%;max-height:calc(100% - 36px);display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .modal .mh{padding:15px 17px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .modal .mh .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .mh .ic.g{background:#1A2016;color:var(--c-shared)} .mh .ic.p{background:#2A1A10;color:var(--c-mon)}
+  .modal .mh b{font-size:15px} .modal .mh span{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+  .modal .mb{padding:15px 17px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+  .fld label{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-family:var(--mono);margin-bottom:5px}
+  .fld input[type=text],.fld textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--fg);font-family:var(--sans);font-size:14px;resize:vertical}
+  .fld textarea{min-height:72px;line-height:1.5}
+  .row2{display:flex;gap:10px} .row2 .fld{flex:1;min-width:0}
+  .drop{border:1.5px dashed #5C4330;border-radius:11px;padding:15px;text-align:center;color:var(--muted);font-size:12.5px;background:#15100C}
+  .drop b{color:var(--c-mon)}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:9px;font-family:var(--sans);font-size:12.5px;cursor:pointer}
+  .seg button[aria-pressed=true]{color:var(--c-shared);border-color:#33402F;background:#121212}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.5;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 11px}
+  .note b{color:var(--c-shared)} .note.p b{color:var(--c-mon)}
+  .modal .mf{padding:13px 17px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:9px;padding:10px 15px;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--fg)}
+  .btn.primary{background:linear-gradient(180deg,#5E7A4A,#4A6239);border-color:#7A9A62;color:#F2F7EE}
+  .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
+
+  .toast{position:fixed;z-index:3000;left:50%;bottom:86px;transform:translateX(-50%) translateY(10px);background:#1E140D;border:1px solid #E08A4A;color:#FFF4EA;font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.22s;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:calc(100vw - 32px);text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .demo{position:fixed;z-index:1000;left:50%;top:52px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:rgba(17,17,17,.7);text-transform:uppercase;white-space:nowrap;pointer-events:none}
+  .layers h4{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+  .layers h4::after{content:"▾";font-size:11px;color:var(--muted);transition:transform .15s}
+  .layers.collapsed h4{margin-bottom:2px}
+  .layers.collapsed h4::after{transform:rotate(-90deg)}
+  .layers.collapsed .layer,.layers.collapsed .filter,.layers.collapsed .src{display:none}
+  .lbl-short{display:none}
+  @media (max-width:560px){
+    .hud{width:100%;margin-left:0;justify-content:space-between;order:3}
+    .layers{width:auto;min-width:150px;max-width:230px;bottom:max(76px,calc(env(safe-area-inset-bottom,0px) + 76px))}
+    .ctrls{top:92px;gap:6px}
+    .cbtn{padding:9px 10px}
+    .cbtn .lbl{display:none}
+    .city button{padding:8px 10px;font-size:12px}
+    .locate{font-size:13px;padding:11px 18px}
+    .lbl-long{display:none} .lbl-short{display:inline}
+    .leaflet-popup-content{width:240px!important}
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="topbar">
+  <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><b>MONUMENTOSVIRTUAIS</b><span>Arte · Corpo · Território · Rede aberta</span></a>
+  <div class="hud">
+    <span><span class="dot-live"></span><span class="live">AO VIVO</span></span>
+    <span><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
+    <span><span class="k">PONTOS</span> <span id="total">0</span></span>
+  </div>
+</div>
+<div class="ctrls">
+  <div class="city" id="city"><button type="button" data-c="recife" aria-pressed="true">Pernambuco</button><button type="button" data-c="sp" aria-pressed="false">São Paulo</button></div>
+  <button class="cbtn share" id="shareOpen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg><span class="lbl">Compartilhar Wi-Fi</span></button>
+  <button class="cbtn mon" id="monOpen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg><span class="lbl">Criar monumento</span></button>
+</div>
+
+<div class="layers" id="layers"><h4>Camadas</h4>
+  <div class="filter"><label><input type="checkbox" id="onlyOpen"><span class="sw"></span><span>Só ao ar livre</span></label></div>
+  <div class="src" id="demo">Wi-Fi: carregando…</div>
+</div>
+
+<button class="locate" id="locate">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+  <span class="lbl-long">Wi-Fi mais perto de mim</span><span class="lbl-short">Wi-Fi perto de mim</span></button>
+
+<!-- compartilhar wifi -->
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <div class="mh"><div class="ic g"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14 0"/><path d="M8.5 16.1a6 6 0 0 1 7 0"/><path d="M2 8.8a16 16 0 0 1 20 0"/></svg></div><div><b>Compartilhar meu Wi-Fi</b><span>um clique · só a sua rede</span></div></div>
+    <div class="mb">
+      <div class="fld"><label for="ssid">Nome da rede (SSID)</label><input type="text" id="ssid" value="Convidados-Guest"></div>
+      <div class="fld"><label>Tipo de acesso</label><div class="seg" id="seg"><button type="button" data-v="open" aria-pressed="true">Aberta</button><button type="button" data-v="pass" aria-pressed="false">Senha de convidado</button></div></div>
+      <div class="note"><b>Você compartilha só a sua própria rede.</b> Crie uma rede de convidados separada no roteador — nunca a principal. O ponto usa sua localização só com permissão.</div>
+    </div>
+    <div class="mf"><button class="btn" id="mCancel">Cancelar</button><button class="btn primary" id="mAdd">Adicionar aqui</button></div>
+  </div>
+</div>
+
+<!-- criar monumento -->
+<div class="scrim" id="scrimM">
+  <div class="modal">
+    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div><div><b>Erguer um monumento aqui</b><span>registre a memória deste lugar</span></div></div>
+    <div class="mb">
+      <div class="drop"><b>+ Fotos do local</b><br>várias fotos viram um modelo 3D (fotogrametria)</div>
+      <div class="fld"><label for="mName">Nome do monumento</label><input type="text" id="mName" value="Mural da Vila"></div>
+      <div class="row2"><div class="fld"><label for="mYear">Ano</label><input type="text" id="mYear" value="2026"></div><div class="fld"><label for="mBairro">Bairro</label><input type="text" id="mBairro" value="—"></div></div>
+      <div class="fld"><label for="mHist">História / descrição</label><textarea id="mHist">Registro feito por um morador que passou pela rua e quis preservar a imagem antes que ela se perdesse.</textarea></div>
+      <div class="note p"><b>Nasce como “criado por você”.</b> A localização usa seu GPS só com permissão; o ponto fica salvo neste navegador até existir um servidor para guardá-lo.</div>
+    </div>
+    <div class="mf"><button class="btn" id="mCancel2">Cancelar</button><button class="btn primaryP" id="mAdd2">Erguer monumento</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ========= CONFIG ========= */
+  // Serviço oficial WFS do GeoSampa (pontos de Wi-Fi Livre). Buscado AO VIVO pelo navegador.
+  // Se o GeoSampa bloquear por CORS, troque por um proxy no seu próprio site, ex:
+  //   const WFS_WIFI = "/wp-content/geosampa-proxy.php?layer=equipamento_praca_wifi";
+  const WIFI_SOURCES = [
+    "wifi.json",          // 1º: arquivo salvo na mesma pasta (igual aos monumentos — sem API, sem proxy)
+    "geosampa-proxy.php", // 2º: proxy opcional no seu servidor
+    "https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
+      + "?service=WFS&version=2.0.0&request=GetFeature&typeName=geoportal:equipamento_praca_wifi"
+      + "&outputFormat=application/json&srsName=EPSG:4326&count=2000"
+  ];
+
+  /* ========= GUARDA: Leaflet carregou? ========= */
+  if(typeof L==='undefined'){
+    var d=document.getElementById('demo');
+    if(d){d.textContent='erro ao carregar o mapa — verifique a conexão / CDN';d.style.color='#ff8a8a';}
+    return;
+  }
+
+  /* ========= MAPA ========= */
+  const map = L.map('map',{zoomControl:false,attributionControl:true}).setView([-23.556,-46.639],12);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  // Mapa de fundo SEM chave de API.
+  // No servidor: CARTO escuro (artérias + nomes, igual ao mapa de monumentos do site).
+  // Aberto do computador, ou se o CARTO falhar: Esri Dark Gray; depois OpenStreetMap escurecido.
+  if(/^https?:$/.test(location.protocol)){
+    const carto=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',
+      attribution:'&copy; OpenStreetMap &copy; CARTO · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
+    let cartoErr=0;
+    carto.on('tileerror',()=>{if(++cartoErr===6){map.removeLayer(carto);useEsri();}});
+  } else useEsri();
+  function useEsri(){
+  const esriBase=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
+    maxZoom:16, attribution:'Mapa &copy; Esri · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
+  const esriLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(map);
+  let tileErrors=0,switched=false;
+  esriBase.on('tileerror',()=>{
+    if(switched||++tileErrors<6)return;
+    switched=true;map.removeLayer(esriBase);map.removeLayer(esriLabels);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'osm-dark',
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
+  });
+  }
+
+  const COLORS={open:'#8FBF9F',public:'#D9D4CB',shared:'#A8C686',mon:'#C67033',acc:'#E3A46F'};
+  const LABEL={open:'Wi-Fi nas Favelas',public:'Wi-Fi Livre SP',shared:'Compartilhado por pessoas',mon:'Monumentos Virtuais',acc:'Pontos de Acesso'};
+  // lugares onde o sinal fica na rua (dá pra usar a qualquer hora)
+  const OUTDOOR=/^(praça|parque|abrigo de ônibus|ponto turístico|wifi nas favelas)$/i;
+  const canvasR=L.canvas({padding:0.5});
+  const ORIGIN={oficial:'patrimônio oficial',comunitario:'memória comunitária',usuario:'criado por você',acervo:'acervo Monumentos Virtuais'};
+  const SITE='https://monumentosvirtuais.ong.br';
+  const groups={open:L.layerGroup().addTo(map),public:L.layerGroup().addTo(map),shared:L.layerGroup().addTo(map),mon:cluster().addTo(map),acc:cluster().addTo(map)};
+  // agrupa pontos próximos numa bolha com número (como no mapa da página inicial); sem o plugin, mostra todos soltos
+  function cluster(){
+    if(!L.markerClusterGroup)return L.layerGroup();
+    return L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:45,spiderfyOnMaxZoom:true,
+      iconCreateFunction:c=>L.divIcon({className:'',html:`<div class="mv-cluster">${c.getChildCount()}</div>`,iconSize:[40,40],iconAnchor:[20,20]})});
+  }
+  const on={open:true,public:true,shared:true,mon:true,acc:true};
+  let me=null, meMarker=null, routeLine=null, curPano=null;
+
+  function icon(layer){
+    if(layer==='mon')return L.divIcon({className:'',html:'<div class="mk-mon"><i></i></div>',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+    if(layer==='acc')return L.divIcon({className:'',html:'<div class="mk-acc"></div>',iconSize:[16,16],iconAnchor:[8,8],popupAnchor:[0,-8]});
+    return L.divIcon({className:'',html:`<div class="mk" style="width:14px;height:14px;background:${COLORS[layer]}"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+  }
+
+  /* ========= DADOS ========= */
+  // Acervo do site: lido AO VIVO de /wp-json/mv3/v1/map (o mesmo que alimenta o mapa da página inicial).
+  // Esta cópia (28 itens, coordenadas reais) só é usada se a rota não responder.
+  const SITE_MAP_URL=SITE+'/wp-json/mv3/v1/map';
+  const SITE_SNAPSHOT=[
+    {"id": 336, "type": "monument", "slug": "falta-colo", "title": "Falta colo, mas colo eu tenho pra dar", "lat": -8.0099423, "lng": -34.8465502, "artist": "Iara Sales", "year": "2021"},
+    {"id": 331, "type": "monument", "slug": "ecos-do-tempo", "title": "Ecos do Tempo", "lat": -8.1105568, "lng": -34.9369935, "artist": "Renato Izaias", "year": "2025"},
+    {"id": 323, "type": "monument", "slug": "corpo-capital", "title": "Corpo-Capital", "lat": -8.0640917, "lng": -34.8778912, "artist": "Domingos Jr.", "year": "2021"},
+    {"id": 316, "type": "monument", "slug": "afluir", "title": "Afluir", "lat": -7.994566, "lng": -34.8385024, "artist": "Gabi Holanda", "year": "2025"},
+    {"id": 310, "type": "monument", "slug": "ruby-nox-a-joia-do-sertao", "title": "Ruby Nox — A joia do sertão", "lat": -7.806106, "lng": -37.7940351, "artist": "Ruby Nox", "year": "2025"},
+    {"id": 304, "type": "monument", "slug": "i-do-not-belong", "title": "I Do Not Belong (Eu Não Pertenço)", "lat": -7.9403333, "lng": -34.8794799, "artist": "Soul Nascimento", "year": "2020"},
+    {"id": 293, "type": "monument", "slug": "mulheres-que-carregam-homens", "title": "Mulheres que Carregam Homens", "lat": -8.0685349, "lng": -34.87766, "artist": "Andréa Veruska", "year": "2017"},
+    {"id": 287, "type": "monument", "slug": "inga", "title": "Ingá", "lat": -8.3338176, "lng": -36.41849, "artist": "Monique Xavier", "year": "2022"},
+    {"id": 167, "type": "monument", "slug": "abordagem", "title": "Abordagem", "lat": -8.1822, "lng": -34.936, "artist": "Na Caça Produtora", "year": "2023"},
+    {"id": 166, "type": "monument", "slug": "monumento-adubado", "title": "Adubado", "lat": -8.0147, "lng": -34.8528, "artist": "Buguinha Dub", "year": "2019"},
+    {"id": 165, "type": "monument", "slug": "monumento-batuqueiros-do-silencio", "title": "Batuqueiros do Silêncio", "lat": -8.0474, "lng": -34.9138, "artist": "Irton Batman Silva", "year": "2019"},
+    {"id": 163, "type": "monument", "slug": "monumento-bode", "title": "Caminho da Livroteca do Bode", "lat": -8.0899, "lng": -34.8965, "artist": "Luiz Manuel", "year": "2019"},
+    {"id": 162, "type": "monument", "slug": "monumentoestelita", "title": "Estelita", "lat": -8.048, "lng": -34.8714, "artist": "Bárbara Francesquine", "year": "2019"},
+    {"id": 160, "type": "monument", "slug": "monumento-microclima", "title": "Microclima", "lat": -8.0658, "lng": -34.879, "artist": "Iara Campos", "year": "2019"},
+    {"id": 159, "type": "monument", "slug": "monumento-totem", "title": "Ocupação Marielle", "lat": -8.0645, "lng": -34.8783, "artist": "Grupo Totem", "year": "2019"},
+    {"id": 157, "type": "monument", "slug": "monumento-quem-e-do-mar-nao-enjoa", "title": "Quem é do mar não enjoa", "lat": -7.9317, "lng": -34.8216, "artist": "Cajú", "year": "2019"},
+    {"id": 155, "type": "monument", "slug": "monumento-capibaribe", "title": "Rio Capibaribe", "lat": -8.0549, "lng": -34.8763, "artist": "Marina Mahmood", "year": "2019"},
+    {"id": 153, "type": "monument", "slug": "roberta-da-silva", "title": "Roberta da Silva", "lat": -8.0677, "lng": -34.8757, "artist": "Pérola Pessoa", "year": "2023"},
+    {"id": 152, "type": "monument", "slug": "monumento-soledad", "title": "Soledad", "lat": -8.0655, "lng": -34.879, "artist": "Aurora Jamelo", "year": "2019"},
+    {"id": 150, "type": "monument", "slug": "transforma", "title": "Transforma", "lat": -8.0625, "lng": -34.8775, "artist": "Pedro Andrade", "year": "2019"},
+    {"id": 147, "type": "monument", "slug": "silicio-ou-quando-a-terra-se-re-des-faz", "title": "Silício, ou quando a terra se (re/des)faz", "lat": -8.0024722, "lng": -36.0910278, "artist": "kevs", "year": "2026"},
+    {"id": 146, "type": "monument", "slug": "album-visual-de-riah", "title": "Álbum visual de Riáh", "lat": -8.2910218, "lng": -35.9613, "artist": "Riáh", "year": "2026"},
+    {"id": 173, "type": "access_point", "slug": "afoxe-alafin-oyo", "title": "Afoxé Alafin Oyó", "lat": -8.0151, "lng": -34.8461},
+    {"id": 172, "type": "access_point", "slug": "casa-da-cidade", "title": "Casa da Cidade", "lat": -23.5522, "lng": -46.6925},
+    {"id": 171, "type": "access_point", "slug": "circo-no-beco", "title": "Circo no Beco", "lat": -23.5605, "lng": -46.6871},
+    {"id": 170, "type": "access_point", "slug": "galeria-olido", "title": "Galeria Olido", "lat": -23.5435, "lng": -46.639},
+    {"id": 169, "type": "access_point", "slug": "praca-das-artes", "title": "Praça das Artes", "lat": -23.5443, "lng": -46.6374},
+    {"id": 168, "type": "access_point", "slug": "praca-roosevelt", "title": "Praça Roosevelt", "lat": -23.5484, "lng": -46.6465}
+  ];
+  function siteItem(o){
+    const lat=+o.lat,lng=+o.lng; if(!isFinite(lat)||!isFinite(lng))return null;
+    if(o.type==='access_point')return {layer:'acc',name:o.title,slug:o.slug,lat,lng};
+    return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'acervo',
+      link:SITE+'/monumento/'+o.slug,hist:'Obra de '+(o.artist||'artista')+(o.year?' ('+o.year+')':'')+' — acervo Monumentos Virtuais. Abra a página para ver a obra completa.'};
+  }
+  // Wi-Fi de reserva (praças/parques reais com Wi-Fi Livre) — usado SÓ se o GeoSampa falhar
+  const WIFI_FALLBACK=[
+    {name:'Praça da Sé',lat:-23.5505,lng:-46.6333,access:'login'},
+    {name:'Vale do Anhangabaú',lat:-23.5455,lng:-46.6380,access:'login'},
+    {name:'Parque da Luz',lat:-23.5346,lng:-46.6339,access:'login'},
+    {name:'Largo da Batata',lat:-23.5665,lng:-46.6945,access:'login'},
+    {name:'Parque Ibirapuera',lat:-23.5874,lng:-46.6576,access:'login'},
+    {name:'Praça Roosevelt',lat:-23.5478,lng:-46.6430,access:'login'},
+    {name:'Parque da Juventude',lat:-23.5020,lng:-46.6260,access:'login'},
+    {name:'Capão Redondo',lat:-23.6670,lng:-46.7710,access:'open'},
+    {name:'Grajaú',lat:-23.7720,lng:-46.6900,access:'open'},
+    {name:'Cidade Tiradentes',lat:-23.5900,lng:-46.4000,access:'open'}
+  ];
+
+  /* ========= PANORAMA 360 (exemplo gerado) ========= */
+  function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+  function initPano(cv,d){
+    if(!cv)return{stop(){}};
+    const ctx=cv.getContext('2d');let W0,H0;const dpr=Math.min(2,window.devicePixelRatio||1);
+    function size(){const r=cv.getBoundingClientRect();W0=Math.max(10,r.width);H0=Math.max(10,r.height);cv.width=W0*dpr;cv.height=H0*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+    size();
+    const seed=hashStr(d.name);function rnd(n){const x=Math.sin(seed*131.7+n*127.1)*43758.5453;return x-Math.floor(x);}
+    const builds=[];for(let i=0;i<28;i++)builds.push({a:rnd(i)*360,w:14+rnd(i+50)*34,h:16+rnd(i+100)*62,win:rnd(i+200)>.4});
+    const FOV=100;let yaw=0,pitch=0,drag=null,raf=0,auto=!window.matchMedia('(prefers-reduced-motion:reduce)').matches,stopped=false;
+    function ax(a){let da=((a-yaw+540)%360)-180;return W0/2+(da/FOV)*W0;}
+    function draw(){
+      const horizon=H0*0.6+pitch*1.1;
+      let sky=ctx.createLinearGradient(0,0,0,Math.max(1,horizon));sky.addColorStop(0,'#15120F');sky.addColorStop(1,'#3A2618');
+      ctx.fillStyle=sky;ctx.fillRect(0,0,W0,horizon);
+      ctx.fillStyle='rgba(232,211,191,.5)';for(let i=0;i<32;i++){const x=ax(rnd(i+300)*360);if(x>-2&&x<W0+2)ctx.fillRect(x,rnd(i+400)*horizon*0.7,1.4,1.4);}
+      let gr=ctx.createLinearGradient(0,horizon,0,H0);gr.addColorStop(0,'#120E0B');gr.addColorStop(1,'#080706');
+      ctx.fillStyle=gr;ctx.fillRect(0,horizon,W0,H0-horizon);
+      ctx.fillStyle='rgba(198,112,51,.16)';ctx.fillRect(0,horizon-1,W0,2);
+      builds.forEach(b=>{const x=ax(b.a);if(x<-40||x>W0+40)return;ctx.fillStyle='#0D0B09';ctx.fillRect(x-b.w/2,horizon-b.h,b.w,b.h);
+        if(b.win){ctx.fillStyle='rgba(232,180,120,.4)';for(let wy=horizon-b.h+4;wy<horizon-3;wy+=7)for(let wx=x-b.w/2+3;wx<x+b.w/2-2;wx+=6)if((wx+wy)%13<6)ctx.fillRect(wx,wy,2,2.4);}});
+      const mx=ax(0);if(mx>-80&&mx<W0+80){const mh=H0*0.44,base=horizon;ctx.save();ctx.translate(mx,0);
+        ctx.strokeStyle='#C67033';ctx.lineWidth=2;ctx.fillStyle='rgba(198,112,51,.14)';
+        ctx.beginPath();ctx.moveTo(-18,base);ctx.lineTo(-10,base-mh*0.78);ctx.lineTo(0,base-mh);ctx.lineTo(10,base-mh*0.78);ctx.lineTo(18,base);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.fillStyle='rgba(198,112,51,.22)';ctx.beginPath();ctx.rect(-24,base,48,8);ctx.fill();ctx.stroke();ctx.restore();}
+    }
+    function loop(){if(stopped)return;if(auto&&!drag)yaw=(yaw+0.1)%360;draw();raf=requestAnimationFrame(loop);}
+    loop();
+    cv.addEventListener('pointerdown',e=>{auto=false;drag={x:e.clientX,y:e.clientY,yaw,pitch};cv.setPointerCapture(e.pointerId);});
+    cv.addEventListener('pointermove',e=>{if(!drag)return;yaw=(drag.yaw-(e.clientX-drag.x)*0.35+720)%360;pitch=Math.max(-28,Math.min(28,drag.pitch+(e.clientY-drag.y)*0.3));});
+    cv.addEventListener('pointerup',()=>{drag=null;});cv.addEventListener('pointercancel',()=>{drag=null;});
+    window.addEventListener('resize',size);
+    return {stop(){stopped=true;cancelAnimationFrame(raf);window.removeEventListener('resize',size);}};
+  }
+
+  /* ========= POPUPS ========= */
+  function gmaps(d){return `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=walking`;}
+  function wifiPopup(d){
+    const dist = me ? `<p class="dist">◎ ${haversine(me,d).toFixed(2)} km · ~${Math.max(1,Math.round(haversine(me,d)/0.075))} min a pé</p>`:'';
+    const chips = d.layer==='shared'
+      ? `<span class="chip ok">compartilhado por morador</span>${d.access==='open'?'<span class="chip ok">entra direto</span>':'<span class="chip">senha de convidado</span>'}`
+      : (d.outdoor ? '<span class="chip ok">ao ar livre · qualquer hora</span>' : '<span class="chip warn">dentro do local · horário de funcionamento</span>');
+    return `<div class="pp"><div class="bar" style="background:${COLORS[d.layer]}"></div><div class="bd">
+      <div class="type" style="color:${COLORS[d.layer]}">${LABEL[d.layer]}</div>
+      <h3>${esc(d.name)}</h3><p class="addr">${esc(d.addr||'ponto de acesso')}</p>${dist}
+      <div class="chips">${chips}<span class="chip">gratuita</span></div>
+      <a class="actbtn route" href="${gmaps(d)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Abrir rota no mapa</a>
+    </div></div>`;
+  }
+  function monPopup(d){
+    const o=d.origin||'oficial';
+    const artist=d.artist?`<p class="artist">${esc(d.artist)}${d.year&&d.year!=='—'?' · '+esc(d.year):''}</p>`:'';
+    const verBtn=d.link?`<a class="actbtn mon" href="${esc(d.link)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Ver monumento</a>`:'';
+    return `<div class="pp"><div class="bar" style="background:${COLORS.mon}"></div><div class="bd">
+      <div class="type" style="color:${COLORS.mon}">${LABEL.mon}</div>
+      <h3>${esc(d.name)}</h3>${artist}${d.bairro?`<p class="addr">${esc(d.bairro)}</p>`:''}
+      <div class="m3d"><span class="tag">Panorama 360</span><span class="ex">exemplo</span><canvas class="panoCv"></canvas><span class="hint">arraste para olhar em volta ↔</span></div>
+      <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span><span class="chip">acesso via navegador</span></div>
+      ${d.hist?`<p class="hist">${esc(d.hist)}</p>`:''}
+      ${verBtn}
+    </div></div>`;
+  }
+  function accPopup(d){
+    const dist = me ? `<p class="dist">◎ ${haversine(me,d).toFixed(2)} km</p>`:'';
+    return `<div class="pp"><div class="bar" style="background:${COLORS.acc}"></div><div class="bd">
+      <div class="type" style="color:${COLORS.acc}">${LABEL.acc}</div>
+      <h3>${esc(d.name)}</h3>${dist}
+      <div class="chips"><span class="chip">ponto de acesso · Monumentos Virtuais</span></div>
+      <a class="actbtn route" href="${gmaps(d)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Abrir rota no mapa</a>
+    </div></div>`;
+  }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+  function addPoint(d){
+    // Wi-Fi oficial (milhares de pontos): círculos desenhados em canvas, leves no celular
+    const light = d.layer==='open'||d.layer==='public';
+    const m = light
+      ? L.circleMarker([d.lat,d.lng],{renderer:canvasR,radius:5,weight:1,color:'#0A0A0A',fillColor:COLORS[d.layer],fillOpacity:.9})
+      : L.marker([d.lat,d.lng],{icon:icon(d.layer)});
+    m._data=d; d._m=m;
+    m.bindPopup(()=>d.layer==='mon'?monPopup(d):d.layer==='acc'?accPopup(d):wifiPopup(d),{closeButton:true,maxWidth:300,
+      maxHeight:Math.max(260,window.innerHeight-200),
+      autoPanPaddingTopLeft:L.point(16,window.innerWidth<560?150:90),autoPanPaddingBottomRight:L.point(16,90)});
+    m.on('popupopen',e=>{
+      if(d.layer==='mon'){const cv=e.popup.getElement().querySelector('.panoCv');if(curPano)curPano.stop();curPano=initPano(cv,d);}
+    });
+    m.on('popupclose',()=>{if(curPano){curPano.stop();curPano=null;}});
+    groups[d.layer].addLayer(m);
+    return m;
+  }
+
+  function haversine(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180,
+    s=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.asin(Math.sqrt(s));}
+
+  /* ========= CARGA DE DADOS ========= */
+  const store={open:[],public:[],shared:[],mon:[],acc:[]};
+  function register(d){store[d.layer].push(d);addPoint(d);}
+  // monumentos criados pelo usuário (salvos no navegador)
+  try{JSON.parse(localStorage.getItem('mv_wifi')||'[]').forEach(d=>register(Object.assign({layer:'shared'},d)));}catch(e){}
+
+  // GeoSampa: nm_equipamento = tipo de lugar, tx_endereco_equipamento = endereço
+  function wifiFromFeature(p,lat,lng){
+    const tipo=String((p&&p.nm_equipamento)||'').trim()||'Ponto de Wi-Fi Livre';
+    return {layer:'public',name:tipo,addr:(p&&p.tx_endereco_equipamento)||'São Paulo',lat,lng,outdoor:OUTDOOR.test(tipo)};
+  }
+
+  function setSrc(txt,cls){const s=document.getElementById('demo');s.textContent=txt;s.className='src '+(cls||'');}
+  function fetchFirst(urls){
+    let i=0;
+    return new Promise((res,rej)=>{
+      (function next(){
+        if(i>=urls.length)return rej(new Error('todas as fontes falharam'));
+        const u=urls[i++];
+        fetch(u).then(r=>{if(!r.ok)throw 0;return r.json();})
+          .then(j=>{if(!j||!j.features||!j.features.length)throw 0;res(j);})
+          .catch(next);
+      })();
+    });
+  }
+  function loadWifiLive(){
+    // aberto direto do computador (file://): arquivos locais e PHP não carregam, só a URL pública
+    const sources = location.protocol==='file:' ? WIFI_SOURCES.filter(u=>/^https?:/.test(u)) : WIFI_SOURCES;
+    fetchFirst(sources)
+      .then(gj=>{
+        const feats=gj.features;
+        feats.forEach(f=>{
+          const g=f.geometry;if(!g)return;let lng,lat;
+          if(g.type==='Point'){[lng,lat]=g.coordinates;}
+          else if(g.type==='MultiPoint'){[lng,lat]=g.coordinates[0];}
+          else return;
+          if(Math.abs(lat)>90){const t=lat;lat=lng;lng=t;} // segurança se vier invertido
+          register(wifiFromFeature(f.properties,lat,lng));
+        });
+        setSrc('Wi-Fi: '+feats.length+' pontos oficiais · GeoSampa/PMSP','ok');
+        refresh();
+      })
+      .catch(()=>{
+        WIFI_FALLBACK.forEach(d=>register({layer:'public',name:d.name,addr:'ponto de referência',lat:d.lat,lng:d.lng,outdoor:true}));
+        setSrc('Wi-Fi: '+WIFI_FALLBACK.length+' pontos de referência · ative o proxy no servidor','warn');
+        refresh();
+      });
+  }
+
+  /* ========= CAMADAS / FILTRO ========= */
+  const layersBox=document.getElementById('layers'),h4=layersBox.querySelector('h4');
+  function buildLegend(){
+    [...layersBox.querySelectorAll('.layer')].forEach(n=>n.remove());
+    let prev=h4;
+    ['mon','acc','public','shared'].forEach(k=>{
+      const row=document.createElement('label');row.className='layer'+(on[k]?'':' off');
+      row.innerHTML=`<span class="swatch" style="background:${COLORS[k]};color:${COLORS[k]};${k==='mon'?'border-radius:3px':''}"></span><span class="nm">${LABEL[k]}</span><span class="ct">${store[k].length}</span>`;
+      row.onclick=()=>{on[k]=!on[k];if(on[k])map.addLayer(groups[k]);else map.removeLayer(groups[k]);row.classList.toggle('off',!on[k]);applyFilter();updTotal();};
+      prev.after(row);prev=row;
+    });
+  }
+  function applyFilter(){
+    const only=document.getElementById('onlyOpen').checked;
+    ['open','public'].forEach(k=>store[k].forEach(d=>{
+      const show=!only||d.outdoor, has=groups[k].hasLayer(d._m);
+      if(show&&!has)groups[k].addLayer(d._m); else if(!show&&has)groups[k].removeLayer(d._m);
+    }));
+  }
+  // painel de camadas recolhível (fechado por padrão no celular)
+  h4.addEventListener('click',()=>layersBox.classList.toggle('collapsed'));
+  if(window.innerWidth<560)layersBox.classList.add('collapsed');
+  function updTotal(){let t=0;['mon','acc','public','shared'].forEach(k=>{if(on[k])t+=store[k].length;});document.getElementById('total').textContent=String(t);}
+  function refresh(){buildLegend();updTotal();applyFilter();}
+  document.getElementById('onlyOpen').addEventListener('change',applyFilter);
+  buildLegend();updTotal();
+
+  /* ========= LOCALIZAR ========= */
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+  function onLocated(lat,lng){
+    me={lat,lng};
+    if(meMarker)map.removeLayer(meMarker);
+    meMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="me-mk" style="width:16px;height:16px"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
+    const only=document.getElementById('onlyOpen').checked;
+    let pool=[];
+    store.open.concat(store.public).forEach(d=>{if(!only||d.outdoor)pool.push(d);});
+    store.shared.forEach(d=>{if(d.access==='open')pool.push(d);});
+    let best=null,bd=1e9;pool.forEach(d=>{if(!on[d.layer])return;const dd=haversine(me,d);if(dd<bd){bd=dd;best=d;}});
+    if(routeLine)map.removeLayer(routeLine);
+    if(best){routeLine=L.polyline([[lat,lng],[best.lat,best.lng]],{color:'#E3A46F',weight:3,dashArray:'8 7',opacity:.95}).addTo(map);
+      map.fitBounds(routeLine.getBounds().pad(0.4));
+      toast(`Mais perto: ${best.name} · ${bd.toFixed(2)} km`);
+    } else {map.setView([lat,lng],15);toast('Nenhuma rede aberta por perto nas camadas ativas');}
+  }
+  document.getElementById('locate').addEventListener('click',()=>{
+    if(!navigator.geolocation){toast('GPS indisponível neste navegador');return;}
+    toast('Localizando…');
+    navigator.geolocation.getCurrentPosition(
+      p=>onLocated(p.coords.latitude,p.coords.longitude),
+      ()=>{toast('Não consegui o GPS — permita a localização');},
+      {enableHighAccuracy:true,timeout:8000});
+  });
+
+  /* ========= COMPARTILHAR WIFI ========= */
+  const scrim=document.getElementById('scrim');let shareType='open';
+  document.getElementById('shareOpen').onclick=()=>scrim.classList.add('show');
+  document.getElementById('mCancel').onclick=()=>scrim.classList.remove('show');
+  scrim.addEventListener('click',e=>{if(e.target===scrim)scrim.classList.remove('show');});
+  document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;shareType=b.dataset.v;[...e.currentTarget.children].forEach(c=>c.setAttribute('aria-pressed',c===b));});
+  function addShared(lat,lng){
+    const ssid=(document.getElementById('ssid').value||'Rede compartilhada').trim();
+    const d={layer:'shared',name:ssid,addr:'compartilhado por você',lat,lng,access:shareType};
+    register(d);persist('mv_wifi',store.shared);refresh();scrim.classList.remove('show');toast('✓ "'+ssid+'" no mapa');
+    const mk=groups.shared.getLayers().slice(-1)[0];if(mk)mk.openPopup();
+  }
+  document.getElementById('mAdd').onclick=()=>{
+    if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>addShared(p.coords.latitude,p.coords.longitude),()=>addShared(map.getCenter().lat,map.getCenter().lng),{timeout:6000});}
+    else addShared(map.getCenter().lat,map.getCenter().lng);
+  };
+
+  /* ========= CRIAR MONUMENTO ========= */
+  const scrimM=document.getElementById('scrimM');
+  document.getElementById('monOpen').onclick=()=>scrimM.classList.add('show');
+  document.getElementById('mCancel2').onclick=()=>scrimM.classList.remove('show');
+  scrimM.addEventListener('click',e=>{if(e.target===scrimM)scrimM.classList.remove('show');});
+  function addMon(lat,lng){
+    const d={layer:'mon',name:(document.getElementById('mName').value||'Monumento').trim(),bairro:(document.getElementById('mBairro').value||'—').trim(),year:(document.getElementById('mYear').value||'—').trim(),origin:'usuario',lat,lng,hist:(document.getElementById('mHist').value||'').trim()};
+    register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'));refresh();scrimM.classList.remove('show');toast('✓ Monumento "'+d.name+'" erguido');
+    const mk=groups.mon.getLayers().slice(-1)[0];if(mk){if(groups.mon.zoomToShowLayer)groups.mon.zoomToShowLayer(mk,()=>mk.openPopup());else mk.openPopup();}
+  }
+  document.getElementById('mAdd2').onclick=()=>{
+    if(navigator.geolocation){navigator.geolocation.getCurrentPosition(p=>addMon(p.coords.latitude,p.coords.longitude),()=>addMon(map.getCenter().lat,map.getCenter().lng),{timeout:6000});}
+    else addMon(map.getCenter().lat,map.getCenter().lng);
+  };
+  function persist(key,arr){try{localStorage.setItem(key,JSON.stringify(arr.map(d=>({name:d.name,bairro:d.bairro,year:d.year,origin:d.origin,lat:d.lat,lng:d.lng,hist:d.hist,access:d.access}))));}catch(e){}}
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');scrimM.classList.remove('show');}});
+
+  /* ========= RELÓGIO ========= */
+  function tick(){const t=new Date();document.getElementById('zulu').textContent=[t.getUTCHours(),t.getUTCMinutes(),t.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':')+'Z';}
+  tick();setInterval(tick,1000);
+
+  /* ========= SELETOR DE CIDADE ========= */
+  const CITIES={
+    recife:()=>{const pts=store.mon.map(d=>[d.lat,d.lng]);if(pts.length)map.fitBounds(L.latLngBounds(pts).pad(0.15));else map.setView([-8.057,-34.882],12);},
+    sp:()=>map.setView([-23.556,-46.639],12)
+  };
+  document.getElementById('city').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    [...e.currentTarget.children].forEach(c=>c.setAttribute('aria-pressed',c===b));
+    map.closePopup();CITIES[b.dataset.c]();
+  });
+
+  /* start: carrega o acervo do site (ao vivo; cópia embutida se falhar) e abre em Pernambuco */
+  function loadSite(){
+    const use=arr=>{arr.map(siteItem).filter(Boolean).forEach(register);try{JSON.parse(localStorage.getItem('mv_mon')||'[]').forEach(d=>register(Object.assign({layer:'mon'},d)));}catch(e){}refresh();CITIES.recife();};
+    fetch(SITE_MAP_URL).then(r=>{if(!r.ok)throw 0;return r.json();})
+      .then(arr=>{if(!Array.isArray(arr)||!arr.length)throw 0;use(arr);})
+      .catch(()=>use(SITE_SNAPSHOT));
+  }
+  loadSite();
+  loadWifiLive();
+})();
+</script>
+</body>
+</html>
