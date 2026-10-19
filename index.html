@@ -254,14 +254,8 @@
   const map = L.map('map',{zoomControl:false,attributionControl:true}).setView([-23.556,-46.639],12);
   L.control.zoom({position:'bottomright'}).addTo(map);
   // Mapa de fundo SEM chave de API.
-  // No servidor: CARTO escuro (artérias + nomes, igual ao mapa de monumentos do site).
-  // Aberto do computador, ou se o CARTO falhar: Esri Dark Gray; depois OpenStreetMap escurecido.
-  if(/^https?:$/.test(location.protocol)){
-    const carto=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',
-      attribution:'&copy; OpenStreetMap &copy; CARTO · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
-    let cartoErr=0;
-    carto.on('tileerror',()=>{if(++cartoErr===6){map.removeLayer(carto);useEsri();}});
-  } else useEsri();
+  // Esri Dark Gray (ruas + nomes); se falhar, OpenStreetMap escurecido.
+  useEsri(); // CARTO exige chave fora do domínio autorizado; Esri e OSM não
   function useEsri(){
   const esriBase=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
     maxZoom:16, attribution:'Mapa &copy; Esri · Wi-Fi: GeoSampa/PMSP'}).addTo(map);
