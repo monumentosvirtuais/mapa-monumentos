@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root{
-    --bg:#0A0A0A; --panel:#111111; --panel-2:#181818; --line:#262626;
-    --fg:#EDE9E3; --muted:#8C8780; --faint:#4F4B46;
+    --bg:#0A0A0A; --panel:#141210; --panel-2:#181818; --line:#262626;
+    --fg:#F2EDE6; --muted:#8C8780; --faint:#4F4B46;
     --c-open:#8FBF9F; --c-public:#D9D4CB; --c-mon:#C67033; --c-shared:#A8C686; --c-me:#7FB2E5;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
     --sans:'Archivo',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -79,6 +79,7 @@
   /* entrada (GPS) */
   .gate{position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(6,6,6,.82);backdrop-filter:blur(4px)}
   .gate-card{width:380px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 22px;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .gate-ic{width:56px;height:56px;border-radius:12px;margin:0 auto 4px;display:block}
   .gate-mark{width:44px;height:44px;border-radius:10px;background:var(--c-mon);display:grid;place-items:center;margin:0 auto 4px;box-shadow:0 0 18px rgba(198,112,51,.5)}
   .gate-mark i{width:12px;height:12px;background:#FFF4EA;transform:rotate(45deg);display:block}
   .gate h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.05em;text-wrap:balance}
@@ -116,6 +117,16 @@
   }
   @media (prefers-reduced-motion:reduce){.nav-arrow{transition:none}}
 
+  .cover{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:10px;overflow:hidden;background:#0A0A0A;border:1px solid var(--line);margin-bottom:10px;display:grid;place-items:center}
+  .cover img,.cover iframe{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border:0}
+  .cover-load{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .cover .play{position:relative;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;color:#FFF4EA;background:rgba(198,112,51,.92);display:grid;place-items:center;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  .cover .play:hover{background:#C67033}
+  .ficha{display:grid;gap:6px;margin:0 0 10px}
+  .ficha div{display:flex;flex-direction:column}
+  .ficha small{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .ficha span{font-size:12.5px;color:#D2CCC4}
+
   /* marcadores */
   .mk{border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
   .mk.pulse{animation:mkp 3s ease-out infinite}
@@ -128,7 +139,11 @@
   .mk-mon i{width:7px;height:7px;background:#FFF4EA;transform:rotate(45deg);display:block}
   .mk-mon:hover{transform:scale(1.12)}
   .mk-acc{width:16px;height:16px;border-radius:50%;background:#0A0A0A;border:3px solid #E3A46F;box-shadow:0 0 10px rgba(227,164,111,.4)}
-  .brand{color:inherit;text-decoration:none;pointer-events:auto}
+  .brand{color:inherit;text-decoration:none;pointer-events:auto;flex-direction:row!important;align-items:center;gap:10px}
+  .brand-ic{width:30px;height:30px;border-radius:7px;flex:none}
+  .brand-t{display:flex;flex-direction:column;line-height:1.1}
+  .embed-t{display:none!important}
+  body.embed .full-t{display:none!important} body.embed .embed-t{display:block!important}
   .brand b{font-weight:800;letter-spacing:.05em}
   .me-mk{border-radius:50%;background:var(--c-me);box-shadow:0 0 0 4px rgba(127,178,229,.3),0 0 10px var(--c-me)}
 
@@ -212,7 +227,7 @@
 <div id="map"></div>
 
 <div class="topbar">
-  <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><b>MONUMENTOSVIRTUAIS</b><span>Arte · Corpo · Território · Rede aberta</span></a>
+  <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><img class="brand-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="" width="30" height="30" onerror="this.remove()"><span class="brand-t"><b class="full-t">MONUMENTOSVIRTUAIS</b><b class="embed-t">MAPA WI-FI v2.0 · CAMADAS</b><span class="full-t">Arte · Corpo · Território · Rede aberta</span><span class="embed-t">Monumentos Virtuais · versão de teste</span></span></a>
   <div class="hud">
     <span><span class="dot-live"></span><span class="live">AO VIVO</span></span>
     <span><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
@@ -220,7 +235,7 @@
   </div>
 </div>
 <div class="ctrls">
-  <div class="city" id="city"><button type="button" data-c="recife" aria-pressed="true">Pernambuco</button><button type="button" data-c="sp" aria-pressed="false">São Paulo</button></div>
+  <div class="city" id="city"><button type="button" data-c="recife" aria-pressed="true">Recife</button><button type="button" data-c="pe" aria-pressed="false">Pernambuco</button><button type="button" data-c="sp" aria-pressed="false">São Paulo</button><button type="button" data-c="all" aria-pressed="false">Todos</button></div>
   <button class="cbtn share" id="shareOpen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg><span class="lbl">Compartilhar Wi-Fi</span></button>
   <button class="cbtn mon" id="monOpen">
@@ -271,7 +286,7 @@
 
 <div class="gate" id="gate">
   <div class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
-    <div class="gate-mark"><i></i></div>
+    <img class="gate-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="Monumentos Virtuais" width="56" height="56" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'gate-mark',innerHTML:'<i></i>'}))">
     <h1 id="gateTitle">MONUMENTOSVIRTUAIS</h1>
     <p class="gate-sub">Arte · Corpo · Território</p>
     <p>Ative o GPS para encontrar os monumentos, os pontos de acesso e o Wi-Fi livre mais perto de você. As setas mostram para onde ir.</p>
@@ -309,7 +324,10 @@
   }
 
   /* ========= MAPA ========= */
-  const map = L.map('map',{zoomControl:false,attributionControl:true}).setView([-23.556,-46.639],12);
+  const EMBED=/[?&]embed=1\b/.test(location.search)||window.self!==window.top;
+  if(EMBED)document.body.classList.add('embed');
+  const map = L.map('map',{zoomControl:false,attributionControl:true,scrollWheelZoom:!EMBED}).setView([-8.055,-34.905],12);
+  if(EMBED){map.on('click',()=>map.scrollWheelZoom.enable());map.getContainer().addEventListener('mouseleave',()=>map.scrollWheelZoom.disable());}
   L.control.zoom({position:'bottomright'}).addTo(map);
   // Mapa de fundo SEM chave de API.
   // Esri Dark Gray (ruas + nomes); se falhar, OpenStreetMap escurecido.
@@ -328,7 +346,7 @@
   }
 
   const COLORS={open:'#8FBF9F',public:'#D9D4CB',shared:'#A8C686',mon:'#C67033',acc:'#E3A46F'};
-  const LABEL={open:'Wi-Fi nas Favelas',public:'Wi-Fi livre',shared:'Compartilhado por pessoas',mon:'Monumentos Virtuais',acc:'Pontos de Acesso'};
+  const LABEL={open:'Wi-Fi nas Favelas',public:'Wi-Fi Livre',shared:'Compartilhado por pessoas',mon:'Monumentos Virtuais',acc:'Pontos de Acesso'};
   // lugares onde o sinal fica na rua (dá pra usar a qualquer hora)
   const OUTDOOR=/^(praça|parque|abrigo de ônibus|ponto turístico|wifi nas favelas)$/i;
   const canvasR=L.canvas({padding:0.5});
@@ -460,12 +478,40 @@
     return `<div class="pp"><div class="bar" style="background:${COLORS.mon}"></div><div class="bd">
       <div class="type" style="color:${COLORS.mon}">${LABEL.mon}</div>
       <h3>${esc(d.name)}</h3>${artist}${d.bairro?`<p class="addr">${esc(d.bairro)}</p>`:''}
-      <div class="m3d"><span class="tag">Panorama 360</span><span class="ex">exemplo</span><canvas class="panoCv"></canvas><span class="hint">arraste para olhar em volta ↔</span></div>
+      ${coverHtml(d)}
       <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span><span class="chip">acesso via navegador</span></div>
-      ${d.hist?`<p class="hist">${esc(d.hist)}</p>`:''}
+      <p class="hist" data-desc>${esc((d._detail&&d._detail.description)||d.hist||'')}</p>${fichaHtml(d)}
       ${verBtn}
     </div></div>`;
   }
+  // detalhes da obra vindos do próprio site (capa do vídeo, descrição, ficha técnica)
+  const monCache={};
+  function getMonument(slug){
+    if(!monCache[slug])monCache[slug]=fetch(SITE+'/wp-json/mv3/v1/monuments/'+encodeURIComponent(slug)).then(r=>{if(!r.ok)throw 0;return r.json();}).catch(()=>null);
+    return monCache[slug];
+  }
+  function coverHtml(d){
+    if(d._detail===undefined)return '<div class="cover"><span class="cover-load">carregando obra…</span></div>';
+    const v=d._detail&&d._detail.video;
+    if(!(v&&v.provider==='youtube'&&v.id))return '';
+    const th=v.thumb||('https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg');
+    return `<div class="cover"><img src="${esc(th)}" alt="${esc(d.name)}" loading="lazy"><button class="play" type="button" data-yt="${esc(v.id)}" aria-label="Assistir ${esc(d.name)}"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button></div>`;
+  }
+  function fichaHtml(d){
+    const f=d._detail&&d._detail.ficha_tecnica;
+    if(!Array.isArray(f)||!f.length)return '';
+    return '<div class="ficha">'+f.slice(0,4).map(x=>`<div><small>${esc(x.role)}</small><span>${esc((x.people||[]).join(', '))}</span></div>`).join('')+'</div>';
+  }
+  function fillMonument(popup,d){
+    if(d._detail!==undefined||!d.slug)return;
+    getMonument(d.slug).then(m=>{d._detail=m||null;if(popup.isOpen())popup.update();});
+  }
+  // tocar o vídeo dentro da janela
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.cover .play');if(!b)return;
+    const c=b.closest('.cover');
+    c.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0&playsinline=1" title="vídeo do monumento" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  });
   function accPopup(d){
     const dist = me ? `<p class="dist">◎ ${haversine(me,d).toFixed(2)} km</p>`:'';
     return `<div class="pp"><div class="bar" style="background:${COLORS.acc}"></div><div class="bd">
@@ -489,7 +535,7 @@
       autoPanPaddingTopLeft:L.point(16,window.innerWidth<560?150:90),autoPanPaddingBottomRight:L.point(16,90)});
     m.on('popupopen',e=>{
       const gb=e.popup.getElement().querySelector('[data-guide]');if(gb)gb.onclick=()=>guideTo(d);
-      if(d.layer==='mon'){const cv=e.popup.getElement().querySelector('.panoCv');if(curPano)curPano.stop();curPano=initPano(cv,d);}
+      if(d.layer==='mon')fillMonument(e.popup,d);
     });
     m.on('popupclose',()=>{if(curPano){curPano.stop();curPano=null;}});
     groups[d.layer].addLayer(m);
@@ -514,7 +560,7 @@
   }
 
   const wifiCount={sp:0,rec:0,spFallback:false};
-  function updSrc(){const t=[];if(wifiCount.sp)t.push(wifiCount.sp.toLocaleString('pt-BR')+(wifiCount.spFallback?' SP (referência)':' SP'));if(wifiCount.rec)t.push(wifiCount.rec.toLocaleString('pt-BR')+' Recife');setSrc(t.length?'Wi-Fi livre: '+t.join(' · '):'Wi-Fi: carregando…',wifiCount.spFallback?'warn':'ok');}
+  function updSrc(){const t=[];if(wifiCount.sp)t.push(wifiCount.sp.toLocaleString('pt-BR')+(wifiCount.spFallback?' SP (referência)':' SP'));if(wifiCount.rec)t.push(wifiCount.rec.toLocaleString('pt-BR')+' Recife');setSrc(t.length?'Wi-Fi Livre: '+t.join(' · '):'Wi-Fi: carregando…',wifiCount.spFallback?'warn':'ok');}
   function setSrc(txt,cls){const s=document.getElementById('demo');s.textContent=txt;s.className='src '+(cls||'');}
   function fetchFirst(urls){
     let i=0;
@@ -625,7 +671,7 @@
     navRows=[
       {k:'mon',label:'Monumento',t:on.mon?nearestOf(store.mon):null},
       {k:'acc',label:'Ponto de acesso',t:on.acc?nearestOf(store.acc):null},
-      {k:'public',label:'Wi-Fi livre',t:on.public?nearestOf(wifi):null}
+      {k:'public',label:'Wi-Fi Livre',t:on.public?nearestOf(wifi):null}
     ].filter(r=>r.t).map(r=>Object.assign(r,{b:bearing(me,r.t.d)}));
     let gHtml='';
     if(guideTarget){const km=haversine(me,guideTarget),b=bearing(me,guideTarget);
@@ -746,8 +792,10 @@
 
   /* ========= SELETOR DE CIDADE ========= */
   const CITIES={
-    recife:()=>{const pts=store.mon.map(d=>[d.lat,d.lng]);if(pts.length)map.fitBounds(L.latLngBounds(pts).pad(0.15));else map.setView([-8.057,-34.882],12);},
-    sp:()=>map.setView([-23.556,-46.639],12)
+    recife:()=>map.setView([-8.055,-34.905],12),
+    pe:()=>{const pts=store.mon.map(d=>[d.lat,d.lng]);if(pts.length)map.fitBounds(L.latLngBounds(pts).pad(0.15));else map.setView([-8.3,-36.5],8);},
+    sp:()=>map.setView([-23.556,-46.639],12),
+    all:()=>{const pts=[];['mon','acc','public'].forEach(k=>store[k].forEach(d=>pts.push([d.lat,d.lng])));if(pts.length)map.fitBounds(L.latLngBounds(pts).pad(0.08));}
   };
   document.getElementById('city').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
