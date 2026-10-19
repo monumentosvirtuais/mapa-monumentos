@@ -1,0 +1,19 @@
+# Mapa Wi-Fi · Monumentos Virtuais
+# Bloqueia pela web os arquivos internos (git, scripts de instalação, documentação).
+# O mapa só usa HTML, JS, CSS, JSON e imagens.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule (^|/)\.git(/|$) - [R=404,L]
+  RewriteRule ^tools(/|$) - [R=404,L]
+  RewriteRule \.(php|md|sh|sql)$ - [R=404,L]
+</IfModule>
+<FilesMatch "\.(php|md|sh|sql)$">
+  Require all denied
+</FilesMatch>
+
+# O app offline (sw.js) e os dados precisam se atualizar: não guardar em cache por muito tempo
+<IfModule mod_headers.c>
+  <FilesMatch "^(sw\.js|index\.html|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
