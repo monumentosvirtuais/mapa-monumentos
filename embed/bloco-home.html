@@ -1,6 +1,7 @@
-<!-- Mapa Wi-Fi v2.0 · camadas — colar num widget HTML do Elementor, logo abaixo do mapa atual.
-     Endereço do mapa: /mapa-wifi/ (pasta criada na Hostinger com git clone).
-     Para testar antes, troque /mapa-wifi/ por https://monumentosvirtuais.github.io/mapa-monumentos/ nos 3 lugares. -->
+<!-- Mapa Wi-Fi v2.0 · camadas — inserido na página inicial por tools/inserir-na-home.php.
+     Ao carregar, o bloco se posiciona como primeiro mapa: logo abaixo do título do [mv3_map]
+     e acima dos filtros do mapa atual. Se o título não for encontrado, fica onde foi inserido.
+     Endereço do mapa: /mapa-wifi/ (pasta criada na Hostinger com git clone). -->
 <section class="mv-wifi" aria-labelledby="mv-wifi-t">
   <style>
     .mv-wifi{--osso:#F2EDE6;--cobre:#C67033;--fundo:#141210;--linha:#2A2622;--suave:#A79F95;margin:48px auto;max-width:1200px;color:var(--osso);font-family:inherit}
@@ -18,6 +19,7 @@
     .mv-wifi .mv-btn.vazado{background:transparent;color:var(--osso);border-color:var(--linha)}
     .mv-wifi .mv-btn:hover{filter:brightness(1.08)}
     .mv-wifi small{display:block;margin-top:12px;color:var(--suave);font-size:12.5px}
+    .mv-wifi.mv-wifi--topo{margin:28px auto 44px}
     @media (max-width:760px){.mv-wifi .mv-copy{grid-template-columns:1fr;padding:20px}.mv-wifi iframe{height:72vh}}
   </style>
 
@@ -44,4 +46,14 @@
       <li><b>Conectado, entre nos Monumentos Virtuais.</b> Assista às obras e conheça os artistas pela plataforma.</li>
     </ol>
   </div>
+  <script>
+    /* Coloca o Mapa Wi-Fi v2.0 como primeiro mapa: logo depois do título do [mv3_map], antes dos filtros do mapa atual. */
+    (function () {
+      var s = (document.currentScript && document.currentScript.closest('.mv-wifi')) || document.querySelector('.mv-wifi');
+      var hero = document.querySelector('.mv3-wrap > .mv3-hero');
+      if (!s || !hero || hero.nextElementSibling === s) return;
+      hero.parentNode.insertBefore(s, hero.nextSibling);
+      s.classList.add('mv-wifi--topo');
+    })();
+  </script>
 </section>
