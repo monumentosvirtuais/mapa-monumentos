@@ -258,7 +258,7 @@
 <div id="map"></div>
 
 <div class="topbar">
-  <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_blank" rel="noopener"><img class="brand-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="" width="30" height="30" onerror="this.remove()"><span class="brand-t"><b class="full-t">MONUMENTOSVIRTUAIS</b><b class="embed-t">MAPA WI-FI v2.0 · CAMADAS</b><span class="full-t">Arte · Corpo · Território · Rede aberta</span><span class="embed-t">Monumentos Virtuais · versão de teste</span></span></a>
+  <a class="brand" href="https://monumentosvirtuais.ong.br/" target="_top"><img class="brand-ic" src="https://monumentosvirtuais.ong.br/wp-content/uploads/2026/08/icone-mv-300x300.png" alt="" width="30" height="30" onerror="this.remove()"><span class="brand-t"><b class="full-t">MONUMENTOSVIRTUAIS</b><b class="embed-t">MAPA WI-FI v2.0 · CAMADAS</b><span class="full-t">Arte · Corpo · Território · Rede aberta</span><span class="embed-t">Monumentos Virtuais · versão de teste</span></span></a>
   <div class="hud">
     <span><span class="dot-live" id="liveDot"></span><span class="live" id="liveTxt">AO VIVO</span></span>
     <span class="hud-zulu"><span class="k">ZULU</span> <span id="zulu">--:--:--</span></span>
@@ -344,7 +344,7 @@
       <div class="off-how" id="offIos" hidden><p><b>iPhone:</b> toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</p><p><b>Android:</b> toque no menu <b>⋮</b> do navegador e depois em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).</p></div>
       <p class="off-note">O fundo de ruas fica salvo nas áreas que você já abriu no mapa.</p>
     </div>
-    <div class="mf"><button class="btn" id="offClose" type="button">Fechar</button><button class="btn primaryP" id="offInstall" type="button">Como instalar no Mobile</button><a class="btn primaryP" id="offOpenFull" href="./?app=1" target="_blank" rel="noopener" hidden>Abrir o mapa completo</a></div>
+    <div class="mf"><button class="btn" id="offClose" type="button">Fechar</button><button class="btn primaryP" id="offInstall" type="button">Como instalar no Mobile</button><a class="btn primaryP" id="offOpenFull" href="./?app=1" target="_top" hidden>Abrir o mapa completo</a></div>
   </div>
 </div>
 
@@ -527,7 +527,7 @@
   function monPopup(d){
     const o=d.origin||'oficial';
     const artist=d.artist?`<p class="artist">${esc(d.artist)}${d.year&&d.year!=='—'?' · '+esc(d.year):''}</p>`:'';
-    const verBtn=d.link?`<a class="actbtn mon" href="${esc(d.link)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Ver monumento</a>`:'';
+    const verBtn=d.link?`<a class="actbtn mon" href="${esc(d.link)}" target="_top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Ver monumento</a>`:'';
     return `<div class="pp"><div class="bar" style="background:${COLORS.mon}"></div><div class="bd">
       <div class="type" style="color:${COLORS.mon}">${LABEL.mon}</div>
       <h3>${esc(d.name)}</h3>${artist}${d.bairro?`<p class="addr">${esc(d.bairro)}</p>`:''}

@@ -1,8 +1,9 @@
 <!-- Mapa Wi-Fi v2.0 · camadas — inserido na página inicial por tools/inserir-na-home.php.
      Ao carregar, o bloco se posiciona como primeiro mapa: logo abaixo do título e do texto do [mv3_map];
      os números (Monumentos, Artistas, Pontos de Acesso, Realização) descem para junto do mapa atual.
-     Ordem: título → Mapa Wi-Fi v2.0 → números → filtros → mapa atual. Se o título não for encontrado,
-     o bloco fica onde foi inserido e nada mais muda.
+     Ordem: título → Mapa Wi-Fi v2.0 (com texto e camadas) → números → botão "Ver o mapa anterior"
+     (filtros + mapa antigo recolhidos). Se o título não for encontrado, o bloco fica onde foi
+     inserido e nada mais muda.
      Endereço do mapa: /mapa-wifi/ (pasta criada na Hostinger com git clone). -->
 <section class="mv-wifi" aria-labelledby="mv-wifi-t">
   <style>
@@ -22,6 +23,26 @@
     .mv-wifi .mv-btn:hover{filter:brightness(1.08)}
     .mv-wifi small{display:block;margin-top:12px;color:var(--suave);font-size:12.5px}
     .mv-wifi.mv-wifi--topo{max-width:none;margin:28px 0 40px}
+    .mv-wifi .mv-camadas{margin-top:20px;padding-top:18px;border-top:1px solid var(--linha)}
+    .mv-wifi .mv-camadas .mv-camadas__t{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cobre);margin:0 0 12px}
+    .mv-wifi .mv-camadas ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+    .mv-wifi .mv-camadas li{display:flex;gap:10px;align-items:flex-start;line-height:1.5;color:var(--suave);font-size:14px}
+    .mv-wifi .mv-camadas li b,.mv-wifi .mv-camadas__f b{color:var(--osso);font-weight:600}
+    .mv-wifi .mv-camadas i{flex:none;width:12px;height:12px;margin-top:5px;border-radius:50%;box-sizing:border-box}
+    .mv-wifi .mv-camadas i.sq{border-radius:3px;background:#C67033}
+    .mv-wifi .mv-camadas i.ac{background:#0A0A0A;border:2.5px solid #E3A46F}
+    .mv-wifi .mv-camadas i.wf{background:#D9D4CB}
+    .mv-wifi .mv-camadas i.sh{background:#A8C686}
+    .mv-wifi .mv-camadas .mv-camadas__f{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--suave)}
+    .mv-anterior{margin:8px 0 28px}
+    .mv-anterior__btn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:left;background:#141210;border:1px solid #2A2622;border-radius:12px;padding:14px 18px;color:#F2EDE6;cursor:pointer;font:inherit}
+    .mv-anterior__btn:hover{border-color:#C67033}
+    .mv-anterior__btn span{font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+    .mv-anterior__btn span::after{content:" ▾";color:#C67033}
+    .mv-anterior.aberto .mv-anterior__btn span::after{content:" ▴"}
+    .mv-anterior__btn small{color:#A79F95;font-size:12.5px;letter-spacing:0;text-transform:none}
+    .mv-anterior__corpo{height:0;overflow:hidden}
+    .mv-anterior.aberto .mv-anterior__corpo{height:auto;overflow:visible;padding-top:18px}
     .mv3-hero__stats.mv-stats-abaixo{margin-top:0;margin-bottom:24px}
     @media (max-width:760px){.mv-wifi .mv-copy{grid-template-columns:1fr;padding:20px}.mv-wifi iframe{height:72vh}}
   </style>
@@ -39,9 +60,19 @@
       <p>Baixe o mapa agora, enquanto está conectado. Ele continua funcionando mesmo quando os seus dados acabarem.</p>
       <div class="mv-btns">
         <a class="mv-btn cheio" href="/mapa-wifi/#offline">↓ Baixar para usar sem internet</a>
-        <a class="mv-btn vazado" href="/mapa-wifi/" target="_blank" rel="noopener">Abrir o mapa em tela cheia</a>
+        <a class="mv-btn vazado" href="/mapa-wifi/">Abrir o mapa em tela cheia</a>
       </div>
       <small>Funciona no celular como um app, sem loja de aplicativos. Sua localização fica só no seu aparelho.</small>
+      <div class="mv-camadas">
+        <p class="mv-camadas__t">As camadas do mapa</p>
+        <ul>
+          <li><i class="sq"></i><span><b>Monumentos Virtuais:</b> as obras do acervo. Toque em uma para ver a ficha técnica e assistir ao vídeo.</span></li>
+          <li><i class="ac"></i><span><b>Pontos de Acesso:</b> os lugares onde estão os QR Codes que dão acesso às obras.</span></li>
+          <li><i class="wf"></i><span><b>Wi-Fi Livre:</b> mais de 2.300 pontos de internet gratuita das prefeituras de São Paulo (Wi-Fi Livre SP) e do Recife (Conecta Recife).</span></li>
+          <li><i class="sh"></i><span><b>Compartilhado por pessoas:</b> redes que moradores abrem para quem está por perto. Nesta versão de teste, ficam salvas só no aparelho de quem compartilhou.</span></li>
+        </ul>
+        <p class="mv-camadas__f"><b>Só ao ar livre</b> mostra apenas o Wi-Fi de praças, parques, orlas, pontos de ônibus e comunidades, onde dá para usar a qualquer hora, sem depender do horário de funcionamento.</p>
+      </div>
     </div>
     <ol>
       <li><b>Abra o mapa, mesmo sem dados.</b> O GPS funciona por satélite e mostra onde você está.</li>
@@ -59,6 +90,26 @@
       s.classList.add('mv-wifi--topo');
       var stats = hero.querySelector('.mv3-hero__stats');
       if (stats) { s.parentNode.insertBefore(stats, s.nextSibling); stats.classList.add('mv-stats-abaixo'); }
+      /* Mapa anterior (filtros + mapa do plugin) guardado atrás de um botão. Fica montado fora de vista,
+         com o tamanho real, para abrir já funcionando. */
+      var wrap = hero.parentNode, cont = wrap.querySelector('#mv3-map-container');
+      if (!cont || wrap.querySelector('.mv-anterior')) return;
+      var box = document.createElement('div'); box.className = 'mv-anterior';
+      box.innerHTML = '<button type="button" class="mv-anterior__btn" aria-expanded="false" aria-controls="mv-anterior-corpo">' +
+        '<span>Ver o mapa anterior</span><small>Versão 1: só monumentos e pontos de acesso, com filtros.</small></button>' +
+        '<div class="mv-anterior__corpo" id="mv-anterior-corpo"></div>';
+      var corpo = box.lastChild;
+      ['.mv3-filters', '#mv3-map-loading', '#mv3-map-error', '#mv3-map-container'].forEach(function (sel) {
+        var el = wrap.querySelector(sel); if (el) corpo.appendChild(el);
+      });
+      var ref = stats || s; ref.parentNode.insertBefore(box, ref.nextSibling);
+      var btn = box.firstChild;
+      btn.addEventListener('click', function () {
+        var aberto = box.classList.toggle('aberto');
+        btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+        btn.firstChild.textContent = aberto ? 'Esconder o mapa anterior' : 'Ver o mapa anterior';
+        if (aberto) setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 60);
+      });
     })();
   </script>
 </section>
