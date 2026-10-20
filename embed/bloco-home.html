@@ -1,6 +1,8 @@
 <!-- Mapa Wi-Fi v2.0 · camadas — inserido na página inicial por tools/inserir-na-home.php.
-     Ao carregar, o bloco se posiciona como primeiro mapa: logo abaixo do título do [mv3_map]
-     e acima dos filtros do mapa atual. Se o título não for encontrado, fica onde foi inserido.
+     Ao carregar, o bloco se posiciona como primeiro mapa: logo abaixo do título e do texto do [mv3_map];
+     os números (Monumentos, Artistas, Pontos de Acesso, Realização) descem para junto do mapa atual.
+     Ordem: título → Mapa Wi-Fi v2.0 → números → filtros → mapa atual. Se o título não for encontrado,
+     o bloco fica onde foi inserido e nada mais muda.
      Endereço do mapa: /mapa-wifi/ (pasta criada na Hostinger com git clone). -->
 <section class="mv-wifi" aria-labelledby="mv-wifi-t">
   <style>
@@ -19,7 +21,8 @@
     .mv-wifi .mv-btn.vazado{background:transparent;color:var(--osso);border-color:var(--linha)}
     .mv-wifi .mv-btn:hover{filter:brightness(1.08)}
     .mv-wifi small{display:block;margin-top:12px;color:var(--suave);font-size:12.5px}
-    .mv-wifi.mv-wifi--topo{margin:28px auto 44px}
+    .mv-wifi.mv-wifi--topo{max-width:none;margin:28px 0 40px}
+    .mv3-hero__stats.mv-stats-abaixo{margin-top:0;margin-bottom:24px}
     @media (max-width:760px){.mv-wifi .mv-copy{grid-template-columns:1fr;padding:20px}.mv-wifi iframe{height:72vh}}
   </style>
 
@@ -47,13 +50,15 @@
     </ol>
   </div>
   <script>
-    /* Coloca o Mapa Wi-Fi v2.0 como primeiro mapa: logo depois do título do [mv3_map], antes dos filtros do mapa atual. */
+    /* Mapa Wi-Fi v2.0 como primeiro mapa: depois do título; os números descem para junto do mapa atual. */
     (function () {
       var s = (document.currentScript && document.currentScript.closest('.mv-wifi')) || document.querySelector('.mv-wifi');
       var hero = document.querySelector('.mv3-wrap > .mv3-hero');
-      if (!s || !hero || hero.nextElementSibling === s) return;
-      hero.parentNode.insertBefore(s, hero.nextSibling);
+      if (!s || !hero) return;
+      if (hero.nextElementSibling !== s) hero.parentNode.insertBefore(s, hero.nextSibling);
       s.classList.add('mv-wifi--topo');
+      var stats = hero.querySelector('.mv3-hero__stats');
+      if (stats) { s.parentNode.insertBefore(stats, s.nextSibling); stats.classList.add('mv-stats-abaixo'); }
     })();
   </script>
 </section>
