@@ -621,3 +621,15 @@ add_filter( 'the_content', function ( $c ) {
 	}
 	return $topo . $c . $g;
 }, 20 );
+
+/* ================================================================== */
+/* 6. Números que se atualizam sozinhos: [mve_contagem tipo="monumentos|artistas|pontos"]   */
+/* ================================================================== */
+add_shortcode( 'mve_contagem', function ( $atts ) {
+	$t = isset( $atts['tipo'] ) ? $atts['tipo'] : 'monumentos';
+	$c = function_exists( 'mv3_get_counts' ) ? (array) mv3_get_counts() : array();
+	$map = array( 'monumentos' => array( 'monuments', 'mv3_monument' ), 'artistas' => array( 'artists', 'mv3_artist' ), 'pontos' => array( 'access_points', 'mv3_access_point' ) );
+	if ( ! isset( $map[ $t ] ) ) { return ''; }
+	$n = isset( $c[ $map[ $t ][0] ] ) ? (int) $c[ $map[ $t ][0] ] : (int) wp_count_posts( $map[ $t ][1] )->publish;
+	return (string) $n;
+} );
