@@ -4,7 +4,7 @@
      A versão 1.0 (números, filtros e mapa antigo) fica guardada atrás desse botão, sem ser apagada. Se o título não for encontrado, o bloco fica onde foi
      inserido e nada mais muda.
      Endereço do mapa: /mapa-wifi/ (pasta criada na Hostinger com git clone). -->
-<section class="mv-wifi" aria-labelledby="mv-wifi-t">
+<section class="mv-wifi" id="mapa-wifi" aria-labelledby="mv-wifi-t">
   <style>
     .mv-wifi{--osso:#F2EDE6;--cobre:#C67033;--fundo:#141210;--linha:#2A2622;--suave:#A79F95;margin:48px auto;max-width:1200px;color:var(--osso);font-family:inherit}
     .mv-wifi .mv-eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cobre);margin:0 0 8px}
@@ -34,6 +34,7 @@
     .mv-wifi .mv-camadas i.sh{background:#A8C686}
     .mv-wifi .mv-camadas .mv-camadas__f{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--suave)}
     .mv3-hero .mv3-hero__cta{position:relative;z-index:30}
+    .mv-wifi{scroll-margin-top:72px}
     .mv-anterior{margin:8px 0 28px}
     .mv-anterior__btn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:left;background:#141210;border:1px solid #2A2622;border-radius:12px;padding:14px 18px;color:#F2EDE6;cursor:pointer;font:inherit}
     .mv-anterior__btn:hover{border-color:#C67033}
@@ -85,7 +86,7 @@
     (function () {
       var s = (document.currentScript && document.currentScript.closest('.mv-wifi')) || document.querySelector('.mv-wifi');
       var hero = document.querySelector('.mv3-wrap > .mv3-hero');
-      /* "Descubra o acervo" abre a página Monumentos (outros scripts da página não desviam o clique para o mapa). */
+      /* "Descubra o acervo" desce até o Mapa Wi-Fi v2.0, logo abaixo do texto de entrada. */
       /* Vale também quando outro elemento invisível está por cima do botão: conta a área do botão na tela. */
       window.addEventListener('click', function (e) {
         if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -96,8 +97,13 @@
           if (!(r.width && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) return;
           a = c;
         }
-        e.preventDefault(); e.stopImmediatePropagation(); window.location.assign(a.href);
+        e.preventDefault(); e.stopImmediatePropagation();
+        var alvo = document.getElementById('mapa-wifi');
+        if (!alvo) { window.location.assign(a.href); return; }
+        alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (history.replaceState) { history.replaceState(null, '', '#mapa-wifi'); }
       }, true);
+      (function () { var c = document.querySelector('a.mv3-hero__cta'); if (c) { c.setAttribute('href', '#mapa-wifi'); } })();
       if (!s || !hero) return;
       if (hero.nextElementSibling !== s) hero.parentNode.insertBefore(s, hero.nextSibling);
       s.classList.add('mv-wifi--topo');
