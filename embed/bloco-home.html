@@ -84,6 +84,12 @@
     (function () {
       var s = (document.currentScript && document.currentScript.closest('.mv-wifi')) || document.querySelector('.mv-wifi');
       var hero = document.querySelector('.mv3-wrap > .mv3-hero');
+      /* "Descubra o acervo" abre a página Monumentos (outros scripts da página não desviam o clique para o mapa). */
+      window.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a.mv3-hero__cta');
+        if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault(); e.stopImmediatePropagation(); window.location.assign(a.href);
+      }, true);
       if (!s || !hero) return;
       if (hero.nextElementSibling !== s) hero.parentNode.insertBefore(s, hero.nextSibling);
       s.classList.add('mv-wifi--topo');

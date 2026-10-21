@@ -230,6 +230,81 @@
   .modal .mf{padding:13px 17px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
   .btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:9px;padding:10px 15px;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--fg)}
   .btn.primary{background:linear-gradient(180deg,#5E7A4A,#4A6239);border-color:#7A9A62;color:#F2F7EE}
+  /* criar monumento (passo a passo) */
+  .modal.wiz{width:440px}
+  .prog{display:flex;gap:5px;padding:0 17px 2px;margin-top:-1px} .prog i{flex:1;height:3px;border-radius:2px;background:var(--line)} .prog i.on{background:var(--c-mon)}
+  .wiz section{display:flex;flex-direction:column;gap:12px} .wiz section[hidden]{display:none}
+  .fld .lbl{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-family:var(--mono);margin-bottom:5px}
+  .fld label em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--faint)}
+  .req{font-style:normal;color:var(--c-mon)}
+  .fld input[type=url],.fld input[type=email]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--fg);font-family:var(--sans);font-size:14px}
+  .fld input::placeholder,.fld textarea::placeholder{color:var(--faint)}
+  .fld .bad{border-color:#B5543A!important}
+  .err{margin:5px 0 0;font-size:11.5px;color:#E5866B} .err:empty{display:none}
+  .cnt{display:block;text-align:right;font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+  .fld label.drop{display:block;cursor:pointer;text-transform:none;letter-spacing:0;font-family:var(--sans);font-size:12.5px;color:var(--muted);margin:0}
+  .fcred{margin:-5px 0 10px;font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .pfotos{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:-4px 0 10px} .pfotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+  label.drop:hover{border-color:var(--c-mon)}
+  .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px} .thumbs:empty{display:none}
+  .thumbs .t{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#000;border:1px solid var(--line)}
+  .thumbs .t img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumbs .t button,.ytprev button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(10,10,10,.8);color:var(--fg);cursor:pointer;font-size:13px;line-height:22px;padding:0}
+  .ytprev{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);aspect-ratio:16/9;background:#000;margin-top:-4px}
+  .ytprev img{width:100%;height:100%;object-fit:cover;display:block} .ytprev span{position:absolute;left:8px;bottom:7px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#FFF4EA;background:rgba(10,10,10,.75);padding:3px 6px;border-radius:5px}
+  .ava{display:flex;gap:14px;align-items:center}
+  .ava .ph{width:72px;height:72px;border-radius:50%;border:1.5px dashed #5C4330;background:#15100C;display:grid;place-items:center;overflow:hidden;flex:none;cursor:pointer;text-align:center;font-size:11px;line-height:1.3;color:var(--c-mon);font-weight:600}
+  .ava .ph img{width:100%;height:100%;object-fit:cover} .ava .ph.has{border-style:solid;border-color:var(--c-mon)}
+  .hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--muted);cursor:pointer} .chk input{margin-top:3px;accent-color:#C67033;flex:none}
+  .prev-l{margin:2px 0 -4px;font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+  .prev-pop{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  .chip.checagem{color:#E3C46F;border-color:#5A4A22}
+  .acard{display:flex;gap:13px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel-2)}
+  .acard .ph{width:60px;height:60px;border-radius:50%;overflow:hidden;flex:none;background:#2A1A10;display:grid;place-items:center;color:var(--c-mon);font-weight:700;font-size:20px}
+  .acard .ph img{width:100%;height:100%;object-fit:cover}
+  .acard b{display:block;font-size:15px} .acard .loc{font-size:12px;color:var(--muted)} .acard .cred{display:block;font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:2px}
+  .acard p{margin:7px 0 0;font-size:12.5px;line-height:1.5;color:#D2CCC4} .acard .obras{margin-top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--c-mon)}
+  .hint{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+  .tmode{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tmode button{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);cursor:pointer;font-family:var(--sans)}
+  .tmode button b{font-size:13px;font-weight:600} .tmode button span{font-size:11px;color:var(--muted);line-height:1.35}
+  .tmode button[aria-checked=true]{border-color:var(--c-mon);background:#1E140D} .tmode button[aria-checked=true] b{color:var(--c-mon)}
+  .tq{display:flex;gap:6px} .tq input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 11px;color:var(--fg);font-family:var(--sans);font-size:14px}
+  .tq input::placeholder{color:var(--faint)}
+  .tres{display:flex;flex-direction:column;margin-top:6px;border-radius:10px;overflow:hidden} .tres:empty{display:none}
+  .tres button{text-align:left;padding:9px 11px;background:var(--panel-2);border:0;border-bottom:1px solid var(--line);color:var(--fg);font-family:var(--sans);font-size:12.5px;line-height:1.35;cursor:pointer}
+  .tres button:hover{background:#1E140D} .tres small{display:block;color:var(--muted);font-size:11px}
+  .tres p{margin:0;padding:9px 11px;font-size:12px;color:var(--muted);background:var(--panel-2)}
+  .tdica{font-size:11.5px;color:var(--muted)}
+  .tmap{height:230px;border-radius:12px;border:1px solid var(--line);overflow:hidden;background:#0A0A0A}
+  .tmap.pv{height:160px}
+  .trow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:-4px}
+  .btn.sm{padding:8px 12px;font-size:12px}
+  .tcoord{font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .fld input[type=range]{width:100%;accent-color:#C67033}
+  .fld label b{color:var(--c-mon);font-weight:600}
+  .tpin{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#C67033;border:2px solid #FFF4EA;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .frows{display:flex;flex-direction:column;gap:8px}
+  .frow{display:grid;grid-template-columns:1fr 1.2fr 28px;gap:6px;align-items:start}
+  .frow input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--fg);font-family:var(--sans);font-size:13.5px;min-width:0}
+  .frow input::placeholder{color:var(--faint)} .frow input.bad{border-color:#B5543A}
+  .frow button{height:36px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);cursor:pointer;font-size:15px;padding:0}
+  .btn.add{align-self:flex-start;color:var(--c-mon);border-color:#5C4330;background:#15100C}
+  @media (max-width:420px){.frow{grid-template-columns:1fr 28px;padding-bottom:9px;border-bottom:1px dashed var(--line)}.frow input:nth-child(2){grid-column:1;grid-row:2}.frow button{grid-row:1/3;grid-column:2;height:auto}}
+  .pficha{border:1px solid #2a251f;border-radius:14px;background:#0a0a0a;padding:16px 16px 6px;font-family:'Space Grotesk',var(--sans)}
+  .pficha .pt{margin:0;font-size:18px;font-weight:700;color:#f2ede6}
+  .pficha .pm{margin:3px 0 10px;font-size:13px;color:#a89e92}
+  .pficha .ps{margin:0;font-size:13.5px;line-height:1.6;color:#f2ede6}
+  .pficha .mv3-ficha{margin:18px 0 8px}
+  .pficha .mv3-ficha h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#C8A82A;margin:0 0 12px;font-weight:700}
+  .pficha .mv3-ficha table{width:100%;border-collapse:collapse;font-size:14px}
+  .pficha .mv3-ficha tr{border-bottom:1px solid #2a251f} .pficha .mv3-ficha tr:last-child{border-bottom:none}
+  .pficha .mv3-ficha__role{color:#a89e92;padding:8px 16px 8px 0;vertical-align:top;font-weight:500;width:42%}
+  .pficha .mv3-ficha td{padding:8px 0;color:#f2ede6;vertical-align:top}
+  .pficha .vazio{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:14px 0 10px}
+  .okp{align-items:center;text-align:center;padding:18px 4px 8px} .okp .okic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#2A1A10;color:var(--c-mon);font-size:26px;font-weight:700;border:1px solid #7A4520}
+  .okp h3{margin:4px 0 0;font-size:18px} .okp p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
   .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
 
   .toast{position:fixed;z-index:3000;left:50%;bottom:86px;transform:translateX(-50%) translateY(10px);background:#1E140D;border:1px solid #E08A4A;color:#FFF4EA;font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.22s;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:calc(100vw - 32px);text-align:center}
@@ -297,19 +372,84 @@
   </div>
 </div>
 
-<!-- criar monumento -->
+<!-- criar monumento: 1) o monumento  2) seu perfil de artista  3) como vai ficar  → enviado -->
 <div class="scrim" id="scrimM">
-  <div class="modal">
-    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div><div><b>Erguer um monumento aqui</b><span>registre a memória deste lugar</span></div></div>
+  <form class="modal wiz" id="wiz" novalidate>
+    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div><div><b>Erguer um monumento aqui</b><span id="wStepTxt">1 de 5 · a obra</span></div></div>
+    <div class="prog" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
     <div class="mb">
-      <div class="drop"><b>+ Fotos do local</b><br>várias fotos viram um modelo 3D (fotogrametria)</div>
-      <div class="fld"><label for="mName">Nome do monumento</label><input type="text" id="mName" value="Mural da Vila"></div>
-      <div class="row2"><div class="fld"><label for="mYear">Ano</label><input type="text" id="mYear" value="2026"></div><div class="fld"><label for="mBairro">Bairro</label><input type="text" id="mBairro" value="—"></div></div>
-      <div class="fld"><label for="mHist">História / descrição</label><textarea id="mHist">Registro feito por um morador que passou pela rua e quis preservar a imagem antes que ela se perdesse.</textarea></div>
-      <div class="note p"><b>Nasce como “criado por você”.</b> A localização usa seu GPS só com permissão; o ponto fica salvo neste navegador até existir um servidor para guardá-lo.</div>
+      <!-- 1. o monumento -->
+      <section data-step="1">
+        <div class="fld"><label for="mYt">Vídeo no YouTube <em>(link)</em></label><input type="url" id="mYt" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off"><p class="err" data-err="mYt"></p></div>
+        <div class="ytprev" id="mYtPrev" hidden></div>
+        <div class="fld"><span class="lbl">Fotos do local</span>
+          <label class="drop" for="mFotos"><b>+ Adicionar fotos</b><br>até 8 fotos da obra e do lugar</label>
+          <input type="file" id="mFotos" accept="image/*" multiple hidden>
+          <div class="thumbs" id="mThumbs"></div><p class="err" data-err="midia"></p>
+        </div>
+        <div class="fld" id="mCredBox" hidden><label for="mCred">Autoria das fotos</label><input type="text" id="mCred" maxlength="120" placeholder="ex.: Yuska Ferreira (deixe vazio se forem suas)"></div>
+        <div class="fld"><label for="mName">Nome do monumento <i class="req">*</i></label><input type="text" id="mName" maxlength="90" placeholder="ex.: Mural da Vila"><p class="err" data-err="mName"></p></div>
+        <div class="fld" style="max-width:140px"><label for="mYear">Ano</label><input type="text" id="mYear" inputmode="numeric" maxlength="4" placeholder="2026"></div>
+        <div class="fld"><label for="mHist">História <i class="req">*</i></label><textarea id="mHist" maxlength="1200" placeholder="O que aconteceu aqui? Por que este lugar merece ser lembrado?"></textarea><small class="cnt" data-cnt="mHist">0 / 1200</small><p class="err" data-err="mHist"></p></div>
+      </section>
+      <!-- 2. o território -->
+      <section data-step="2" hidden>
+        <p class="hint">Onde a obra acontece? O círculo mostra o território dela.</p>
+        <div class="tmode" role="radiogroup" aria-label="Como marcar o lugar">
+          <button type="button" role="radio" id="tGps" aria-checked="false"><b>◎ Usar minha localização</b><span>estou no lugar agora</span></button>
+          <button type="button" role="radio" id="tPick" aria-checked="false"><b>⌖ Escolher outro lugar</b><span>buscar endereço ou tocar no mapa</span></button>
+        </div>
+        <div class="tbusca" id="tBusca" hidden>
+          <div class="tq"><input type="search" id="tQ" maxlength="120" placeholder="Rua, praça, bairro ou cidade" autocomplete="off" enterkeyhint="search"><button type="button" class="btn sm" id="tQGo">Buscar</button></div>
+          <div class="tres" id="tRes"></div>
+        </div>
+        <div class="tmap" id="tMap"></div>
+        <div class="trow"><span class="tdica" id="tDica">Arraste o marcador para ajustar.</span><span class="tcoord" id="tCoord"></span></div>
+        <div class="fld"><label for="tRaio">Tamanho do território · <b id="tRaioTxt">300 m</b></label><input type="range" id="tRaio" min="0" max="8" step="1" value="3"></div>
+        <div class="fld"><label for="mBairro">Bairro / cidade <i class="req">*</i></label><input type="text" id="mBairro" maxlength="60" placeholder="ex.: Várzea, Recife, PE"><p class="err" data-err="mBairro"></p></div>
+        <p class="err" data-err="tPos"></p>
+      </section>
+      <!-- 3. ficha técnica -->
+      <section data-step="3" hidden>
+        <p class="hint">Como nos créditos de um filme: a função e quem fez. Fica igual à ficha técnica das obras do acervo.</p>
+        <div id="fRows" class="frows"></div>
+        <button type="button" class="btn sm add" id="fAdd">+ Adicionar função</button>
+        <datalist id="fRoles"><option>Direção</option><option>Concepção</option><option>Performance</option><option>Direção de fotografia</option><option>Câmera</option><option>Som direto</option><option>Montagem</option><option>Música original</option><option>Trilha sonora</option><option>Direção de arte</option><option>Figurino</option><option>Produção</option><option>Colorização e finalização</option><option>Acessibilidade (audiodescrição e Libras)</option></datalist>
+        <p class="err" data-err="ficha"></p>
+      </section>
+      <!-- 4. seu perfil -->
+      <section data-step="4" hidden>
+        <div class="ava"><label class="ph" for="aFoto" id="aFotoPh"><span>+ foto<br>sua</span></label><input type="file" id="aFoto" accept="image/*" hidden>
+          <div class="fld" style="flex:1;min-width:0"><label for="aCred">Autoria da foto</label><input type="text" id="aCred" maxlength="80" placeholder="ex.: Maria Silva (deixe vazio se for sua)"></div></div>
+        <p class="err" data-err="aFoto"></p>
+        <div class="fld"><label for="aNome">Seu nome (como artista) <i class="req">*</i></label><input type="text" id="aNome" maxlength="80" autocomplete="name"><p class="err" data-err="aNome"></p></div>
+        <div class="fld"><label for="aCidade">Cidade / UF</label><input type="text" id="aCidade" maxlength="60" placeholder="ex.: Olinda, PE"></div>
+        <div class="fld"><label for="aBio">Minibio <i class="req">*</i></label><textarea id="aBio" maxlength="400" placeholder="Quem é você, o que você faz, de onde você vem."></textarea><small class="cnt" data-cnt="aBio">0 / 400</small><p class="err" data-err="aBio"></p></div>
+        <div class="fld"><label for="aEmail">E-mail <i class="req">*</i></label><input type="email" id="aEmail" maxlength="120" autocomplete="email" placeholder="não aparece no site"><p class="err" data-err="aEmail"></p></div>
+        <input type="text" id="aSite" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
+        <label class="chk"><input type="checkbox" id="aOk"><span>As fotos e o vídeo são meus ou tenho autorização para publicar. Concordo que a equipe Monumentos Virtuais confira o conteúdo.</span></label><p class="err" data-err="aOk"></p>
+      </section>
+      <!-- 5. como vai ficar -->
+      <section data-step="5" hidden>
+        <p class="prev-l">No mapa dos monumentos</p>
+        <div class="prev-pop" id="pvPop"></div>
+        <p class="prev-l">O território</p>
+        <div class="tmap pv" id="pvMap"></div>
+        <p class="prev-l">Na página do monumento</p>
+        <div class="pficha" id="pvFicha"></div>
+        <p class="prev-l">Na página Artistas</p>
+        <div class="acard" id="pvArt"></div>
+        <div class="note p"><b>Entra no ar na hora.</b> A equipe dos Monumentos Virtuais recebe um e-mail e faz uma checagem. Se algo precisar de ajuste, a gente escreve para você.</div>
+      </section>
+      <!-- enviado -->
+      <section data-step="ok" hidden class="okp">
+        <div class="okic">✓</div>
+        <h3 id="okT">Monumento erguido</h3>
+        <p id="okP">Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. A equipe recebeu um aviso e vai fazer a checagem.</p>
+      </section>
     </div>
-    <div class="mf"><button class="btn" id="mCancel2">Cancelar</button><button class="btn primaryP" id="mAdd2">Erguer monumento</button></div>
-  </div>
+    <div class="mf"><button class="btn" type="button" id="wBack">Cancelar</button><button class="btn primaryP" type="submit" id="wNext">Continuar</button></div>
+  </form>
 </div>
 
 <div class="nav" id="nav" hidden>
@@ -403,7 +543,7 @@
   // lugares onde o sinal fica na rua (dá pra usar a qualquer hora)
   const OUTDOOR=/^(praça|parque|abrigo de ônibus|ponto turístico|wifi nas favelas)$/i;
   const canvasR=L.canvas({padding:0.5});
-  const ORIGIN={oficial:'patrimônio oficial',comunitario:'memória comunitária',usuario:'criado por você',acervo:'acervo Monumentos Virtuais'};
+  const ORIGIN={oficial:'patrimônio oficial',comunitario:'memória comunitária',usuario:'criado pela comunidade',acervo:'acervo Monumentos Virtuais'};
   const SITE='https://monumentosvirtuais.ong.br';
   const groups={open:L.layerGroup().addTo(map),public:L.layerGroup().addTo(map),shared:L.layerGroup().addTo(map),mon:cluster().addTo(map),acc:cluster().addTo(map)};
   // agrupa pontos próximos numa bolha com número (como no mapa da página inicial); sem o plugin, mostra todos soltos
@@ -458,6 +598,8 @@
   function siteItem(o){
     const lat=+o.lat,lng=+o.lng; if(!isFinite(lat)||!isFinite(lng))return null;
     if(o.type==='access_point')return {layer:'acc',name:o.title,slug:o.slug,lat,lng};
+    if(o.comunidade)return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'usuario',pending:!!o.checagem,raio:+o.raio||0,
+      link:SITE+'/monumento/'+o.slug,hist:'Monumento inscrito pela comunidade. Abra a página para ver a obra completa.'};
     return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'acervo',
       link:SITE+'/monumento/'+o.slug,hist:'Obra de '+(o.artist||'artista')+(o.year?' ('+o.year+')':'')+' — acervo Monumentos Virtuais. Abra a página para ver a obra completa.'};
   }
@@ -524,6 +666,8 @@
       <button class="actbtn route" type="button" data-guide><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Guiar até aqui</button>
     </div></div>`;
   }
+  const fotosOf=d=>(d.fotos&&d.fotos.length?d.fotos:(d._detail&&Array.isArray(d._detail.fotos)?d._detail.fotos:[]));
+  const credOf=d=>d.fotoCred||(d._detail&&d._detail.fotos_credito)||'';
   function monPopup(d){
     const o=d.origin||'oficial';
     const artist=d.artist?`<p class="artist">${esc(d.artist)}${d.year&&d.year!=='—'?' · '+esc(d.year):''}</p>`:'';
@@ -531,8 +675,8 @@
     return `<div class="pp"><div class="bar" style="background:${COLORS.mon}"></div><div class="bd">
       <div class="type" style="color:${COLORS.mon}">${LABEL.mon}</div>
       <h3>${esc(d.name)}</h3>${artist}${d.bairro?`<p class="addr">${esc(d.bairro)}</p>`:''}
-      ${coverHtml(d)}
-      <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span><span class="chip">acesso via navegador</span></div>
+      ${coverHtml(d)}${(fotosOf(d).length&&d._detail&&d._detail.video)?'<div class="pfotos">'+fotosOf(d).slice(0,4).map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')+'</div>':''}${(fotosOf(d).length&&credOf(d))?`<p class="fcred">fotos: ${esc(credOf(d))}</p>`:''}
+      <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span>${d.pending?'<span class="chip checagem">em checagem</span>':'<span class="chip">acesso via navegador</span>'}</div>
       <p class="hist" data-desc>${esc((d._detail&&d._detail.description)||d.hist||'')}</p>${fichaHtml(d)}
       ${verBtn}
     </div></div>`;
@@ -547,18 +691,19 @@
     if(d._detail===undefined)return '<div class="cover"><span class="cover-load">carregando obra…</span></div>';
     if(d._detail===null&&!isOnline)return '<div class="cover"><span class="cover-load">conecte-se a um Wi-Fi Livre para assistir</span></div>';
     const v=d._detail&&d._detail.video;
-    if(!(v&&v.provider==='youtube'&&v.id))return '';
+    const fs=fotosOf(d);
+    if(!(v&&v.provider==='youtube'&&v.id))return fs.length?`<div class="cover"><img src="${esc(fs[0])}" alt="${esc(d.name)}"></div>`:'';
     const th=v.thumb||('https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg');
     return `<div class="cover"><img src="${esc(th)}" alt="${esc(d.name)}" loading="lazy"><button class="play" type="button" data-yt="${esc(v.id)}" aria-label="Assistir ${esc(d.name)}"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button></div>`;
   }
   function fichaHtml(d){
-    const f=d._detail&&d._detail.ficha_tecnica;
+    const f=(d._detail&&d._detail.ficha_tecnica)||d.ficha;
     if(!Array.isArray(f)||!f.length)return '';
     return '<div class="ficha">'+f.slice(0,4).map(x=>`<div><small>${esc(x.role)}</small><span>${esc((x.people||[]).join(', '))}</span></div>`).join('')+'</div>';
   }
   function fillMonument(popup,d){
     if(d._detail||!d.slug)return;
-    getMonument(d.slug).then(m=>{d._detail=m||null;if(popup.isOpen())popup.update();});
+    getMonument(d.slug).then(m=>{d._detail=m||null;if(m&&m.comunidade){d.pending=!!m.checagem;if(m.raio)d.raio=+m.raio;}if(popup.isOpen())popup.update();});
   }
   // tocar o vídeo dentro da janela
   document.addEventListener('click',e=>{
@@ -590,8 +735,9 @@
     m.on('popupopen',e=>{
       const gb=e.popup.getElement().querySelector('[data-guide]');if(gb)gb.onclick=()=>guideTo(d);
       if(d.layer==='mon')fillMonument(e.popup,d);
+      if(d.raio&&!d._terr)d._terr=L.circle([d.lat,d.lng],{radius:d.raio,color:COLORS.mon,weight:1.5,dashArray:'5 5',fillColor:COLORS.mon,fillOpacity:.1,interactive:false}).addTo(map);
     });
-    m.on('popupclose',()=>{if(curPano){curPano.stop();curPano=null;}});
+    m.on('popupclose',()=>{if(curPano){curPano.stop();curPano=null;}if(d._terr){map.removeLayer(d._terr);d._terr=null;}});
     groups[d.layer].addLayer(m);
     return m;
   }
@@ -896,20 +1042,251 @@
   }
   document.getElementById('mAdd').onclick=()=>withPosition(addShared);
 
-  /* ========= CRIAR MONUMENTO ========= */
-  const scrimM=document.getElementById('scrimM');
-  document.getElementById('monOpen').onclick=()=>scrimM.classList.add('show');
-  document.getElementById('mCancel2').onclick=()=>scrimM.classList.remove('show');
-  scrimM.addEventListener('click',e=>{if(e.target===scrimM)scrimM.classList.remove('show');});
-  function addMon(lat,lng){
-    const d={layer:'mon',name:(document.getElementById('mName').value||'Monumento').trim(),bairro:(document.getElementById('mBairro').value||'—').trim(),year:(document.getElementById('mYear').value||'—').trim(),origin:'usuario',lat,lng,hist:(document.getElementById('mHist').value||'').trim()};
-    register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'));refresh();scrimM.classList.remove('show');toast('✓ Monumento "'+d.name+'" erguido');
-    openPoint(d);
+  /* ========= CRIAR MONUMENTO (1 monumento · 2 perfil · 3 como vai ficar) ========= */
+  // Envio de verdade só quando o mapa está no próprio site (monumentosvirtuais.ong.br/mapa-wifi/).
+  // Em outros endereços (GitHub Pages, testes) é uma prévia: nada sai do aparelho.
+  const ENVIO=(/(^|\.)monumentosvirtuais\.ong\.br$/.test(location.hostname)||window.MV_TESTE_ENVIO)?location.origin+'/wp-json/mv-erguer/v1/enviar':null;
+  const scrimM=document.getElementById('scrimM'), wiz=document.getElementById('wiz');
+  const $=id=>document.getElementById(id);
+  const W={step:1,fotos:[],aFoto:null,yt:null};
+  const STEP_TXT={1:'1 de 5 · a obra',2:'2 de 5 · o território',3:'3 de 5 · ficha técnica',4:'4 de 5 · seu perfil de artista',5:'5 de 5 · como vai ficar',ok:'enviado'};
+  const LAST=5, RAIOS=[50,100,200,300,500,750,1000,1500,2000];
+  function ytId(u){
+    u=(u||'').trim(); if(!u)return null;
+    const m=u.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/);
+    return m?m[1]:(/^[A-Za-z0-9_-]{11}$/.test(u)?u:false);
   }
-  document.getElementById('mAdd2').onclick=()=>withPosition(addMon);
-  function persist(key,arr){try{localStorage.setItem(key,JSON.stringify(arr.map(d=>({name:d.name,bairro:d.bairro,year:d.year,origin:d.origin,lat:d.lat,lng:d.lng,hist:d.hist,access:d.access}))));}catch(e){}}
+  function setErr(k,msg){const e=wiz.querySelector('[data-err="'+k+'"]');if(e)e.textContent=msg||'';const f=$(k);if(f&&f.classList)f.classList.toggle('bad',!!msg);return !msg;}
+  function go(st){
+    W.step=st;
+    wiz.querySelectorAll('section[data-step]').forEach(x=>x.hidden=String(x.dataset.step)!==String(st));
+    $('wStepTxt').textContent=STEP_TXT[st];
+    wiz.querySelectorAll('.prog i').forEach((x,i)=>x.classList.toggle('on',st==='ok'||i<st));
+    $('wBack').textContent=st===1?'Cancelar':(st==='ok'?'Fechar':'Voltar');
+    $('wNext').textContent=st===LAST?'Erguer monumento':(st==='ok'?'Ver no mapa':'Continuar');
+    $('wBack').hidden=false;
+    if(st===2)setTimeout(initTerr,30);
+    if(st===LAST)setTimeout(renderPreview,30);
+    wiz.querySelector('.mb').scrollTop=0;
+  }
+  function openWiz(){go(1);scrimM.classList.add('show');}
+  function closeWiz(){scrimM.classList.remove('show');}
+  $('monOpen').onclick=openWiz;
+  scrimM.addEventListener('click',e=>{if(e.target===scrimM)closeWiz();});
+  $('wBack').onclick=()=>{if(W.step===1||W.step==='ok')closeWiz();else go(W.step-1);};
+  // contadores
+  wiz.querySelectorAll('[data-cnt]').forEach(c=>{const f=$(c.dataset.cnt);const up=()=>c.textContent=f.value.length+' / '+f.maxLength;f.addEventListener('input',up);up();});
+  // vídeo do YouTube
+  $('mYt').addEventListener('input',()=>{
+    const id=ytId($('mYt').value);W.yt=id||null;const pv=$('mYtPrev');
+    if(id){pv.innerHTML=`<img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt=""><span>▶ vídeo encontrado</span>`;pv.hidden=false;setErr('mYt');setErr('midia');}
+    else{pv.hidden=true;pv.innerHTML='';}
+  });
+  $('mYt').addEventListener('blur',()=>{if(ytId($('mYt').value)===false)setErr('mYt','Esse link não parece ser do YouTube. Copie o endereço do vídeo e cole aqui.');});
+  // fotos do local (reduzidas no aparelho antes de enviar)
+  function shrink(file,max){
+    return new Promise(res=>{const url=URL.createObjectURL(file);const img=new Image();
+      img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>res(b?{blob:b,url:URL.createObjectURL(b)}:null),'image/jpeg',.85);};
+      img.onerror=()=>{URL.revokeObjectURL(url);res(null);};img.src=url;});
+  }
+  function drawThumbs(){
+    $('mCredBox').hidden=!W.fotos.length;
+    $('mThumbs').innerHTML=W.fotos.map((f,i)=>`<div class="t"><img src="${f.url}" alt="foto ${i+1}"><button type="button" data-rm="${i}" aria-label="Tirar foto ${i+1}">×</button></div>`).join('');
+  }
+  $('mFotos').addEventListener('change',async e=>{
+    const files=[...e.target.files].filter(f=>/^image\//.test(f.type)).slice(0,8-W.fotos.length);e.target.value='';
+    for(const f of files){const r=await shrink(f,1600);if(r)W.fotos.push(r);}
+    drawThumbs();if(W.fotos.length)setErr('midia');
+    if(W.fotos.length>=8)toast('Limite de 8 fotos');
+  });
+  $('mThumbs').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;const f=W.fotos.splice(+b.dataset.rm,1)[0];if(f)URL.revokeObjectURL(f.url);drawThumbs();});
+  // foto do artista
+  $('aFoto').addEventListener('change',async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f||!/^image\//.test(f.type))return;
+    const r=await shrink(f,800);if(!r)return;if(W.aFoto)URL.revokeObjectURL(W.aFoto.url);W.aFoto=r;
+    $('aFotoPh').innerHTML=`<img src="${r.url}" alt="sua foto">`;$('aFotoPh').classList.add('has');setErr('aFoto');
+  });
+  // território: marcador arrastável + raio
+  const fmtM=m=>m>=1000?(m/1000).toString().replace('.',',')+' km':m+' m';
+  function terrLayers(m,pos,raio,drag){
+    const mk=L.marker([pos.lat,pos.lng],{draggable:!!drag,icon:L.divIcon({className:'',html:'<div class="tpin"></div>',iconSize:[22,22],iconAnchor:[11,22]})}).addTo(m);
+    const c=L.circle([pos.lat,pos.lng],{radius:raio,color:'#C67033',weight:1.5,dashArray:'5 5',fillColor:'#C67033',fillOpacity:.12,interactive:false}).addTo(m);
+    return {mk,c};
+  }
+  function baseTiles(m){
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(m);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(m);
+  }
+  function raio(){return RAIOS[+$('tRaio').value]||300;}
+  function fitTerr(m,pos,r){m.fitBounds(L.latLng(pos.lat,pos.lng).toBounds(r*2.6),{maxZoom:16});}
+  function setPos(lat,lng,fit){
+    W.pos={lat,lng};W.t.mk.setLatLng([lat,lng]);W.t.c.setLatLng([lat,lng]);
+    $('tCoord').textContent=lat.toFixed(5)+', '+lng.toFixed(5);setErr('tPos');
+    if(fit)fitTerr(W.tm,W.pos,raio());
+  }
+  function initTerr(){
+    if(!W.tm){
+      if(!W.pos){const c=me||map.getCenter();W.pos={lat:c.lat,lng:c.lng};}
+      W.tm=L.map('tMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});baseTiles(W.tm);
+      W.t=terrLayers(W.tm,W.pos,raio(),true);
+      W.t.mk.on('drag',e=>{const ll=e.target.getLatLng();W.t.c.setLatLng(ll);});
+      W.t.mk.on('dragend',e=>{const ll=e.target.getLatLng();setPos(ll.lat,ll.lng);autoBairro();});
+      W.tm.on('click',e=>{if(W.mode!=='pick')setMode('pick');setPos(e.latlng.lat,e.latlng.lng);autoBairro();});
+      setPos(W.pos.lat,W.pos.lng);fitTerr(W.tm,W.pos,raio());
+      if(me){setMode('gps');autoBairro();}
+      else if(navigator.geolocation){setMode('gps');navigator.geolocation.getCurrentPosition(p=>{if(!W.moved){setPos(p.coords.latitude,p.coords.longitude,true);autoBairro();}},()=>{if(!W.moved)setMode('pick');},{timeout:6000,maximumAge:60000});}
+      else setMode('pick');
+      W.t.mk.on('dragstart',()=>W.moved=true);W.tm.on('click',()=>W.moved=true);
+    }
+    W.tm.invalidateSize();
+  }
+  // dois jeitos de marcar: minha localização (GPS) ou escolher outro lugar (busca + mapa)
+  function setMode(m){
+    W.mode=m;$('tGps').setAttribute('aria-checked',m==='gps');$('tPick').setAttribute('aria-checked',m==='pick');
+    $('tBusca').hidden=m!=='pick';
+    $('tDica').textContent=m==='pick'?'Toque no mapa ou arraste o marcador até o lugar.':'Arraste o marcador para ajustar.';
+    if(W.tm)setTimeout(()=>W.tm.invalidateSize(),0);
+  }
+  $('tGps').onclick=()=>{
+    setMode('gps');
+    if(!navigator.geolocation){setMode('pick');return toast('Este aparelho não informa a localização. Escolha o lugar no mapa.');}
+    toast('Localizando…');W.moved=true;
+    navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude,true);autoBairro();},
+      ()=>{setMode('pick');toast('Sem permissão do GPS. Escolha o lugar no mapa ou busque o endereço.');},{timeout:8000,maximumAge:30000});
+  };
+  $('tPick').onclick=()=>{setMode('pick');W.moved=true;$('tQ').focus();};
+  // busca de endereço (OpenStreetMap / Nominatim), só quando a pessoa pede
+  const GEO='https://nominatim.openstreetmap.org/';
+  async function buscar(){
+    const q=val('tQ');if(q.length<3)return;
+    const box=$('tRes');box.innerHTML='<p>Buscando…</p>';
+    try{
+      const c=W.pos||map.getCenter();
+      const r=await fetch(GEO+'search?format=jsonv2&addressdetails=1&limit=5&countrycodes=br&accept-language=pt-BR&q='+encodeURIComponent(q)+'&viewbox='+[c.lng-1,c.lat+1,c.lng+1,c.lat-1].join(','));
+      const j=r.ok?await r.json():[];
+      if(!j.length){box.innerHTML='<p>Nada encontrado. Tente outro nome ou toque no mapa.</p>';return;}
+      box.innerHTML=j.map((x,i)=>{const n=x.name||x.display_name.split(',')[0];const resto=x.display_name.split(',').slice(1,4).join(',').trim();
+        return `<button type="button" data-i="${i}">${esc(n)}<small>${esc(resto)}</small></button>`;}).join('');
+      box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const x=j[+b.dataset.i];box.innerHTML='';
+        setPos(+x.lat,+x.lon,true);fillBairro(x.address);});
+    }catch(e){box.innerHTML='<p>Sem internet para buscar agora. Toque no mapa para marcar o lugar.</p>';}
+  }
+  $('tQGo').onclick=buscar;
+  $('tQ').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();buscar();}});
+  // preenche bairro / cidade sozinho (se a pessoa ainda não escreveu)
+  const UF={'Acre':'AC','Alagoas':'AL','Amapá':'AP','Amazonas':'AM','Bahia':'BA','Ceará':'CE','Distrito Federal':'DF','Espírito Santo':'ES','Goiás':'GO','Maranhão':'MA','Mato Grosso':'MT','Mato Grosso do Sul':'MS','Minas Gerais':'MG','Pará':'PA','Paraíba':'PB','Paraná':'PR','Pernambuco':'PE','Piauí':'PI','Rio de Janeiro':'RJ','Rio Grande do Norte':'RN','Rio Grande do Sul':'RS','Rondônia':'RO','Roraima':'RR','Santa Catarina':'SC','São Paulo':'SP','Sergipe':'SE','Tocantins':'TO'};
+  function fillBairro(a){
+    if(!a||W.bairroManual)return;
+    const b=a.suburb||a.neighbourhood||a.quarter||a.city_district||'';const c=a.city||a.town||a.village||a.municipality||'';const uf=UF[a.state]||'';
+    const t=[b,c].filter(Boolean).join(', ')+(uf?', '+uf:'');if(t){$('mBairro').value=t;setErr('mBairro');}
+  }
+  let revT=null;
+  function autoBairro(){
+    if(W.bairroManual||!W.pos)return;clearTimeout(revT);
+    revT=setTimeout(()=>fetch(GEO+'reverse?format=jsonv2&zoom=16&accept-language=pt-BR&lat='+W.pos.lat+'&lon='+W.pos.lng).then(r=>r.ok?r.json():null).then(j=>j&&fillBairro(j.address)).catch(()=>{}),700);
+  }
+  $('mBairro').addEventListener('input',()=>{W.bairroManual=true;clearTimeout(revT);});
+  $('tRaio').addEventListener('input',()=>{const r=raio();$('tRaioTxt').textContent=fmtM(r);if(W.t){W.t.c.setRadius(r);fitTerr(W.tm,W.pos,r);}});
+  // ficha técnica: função + quem fez (mesmo formato do acervo: role / people)
+  function fRow(role,people){
+    const r=document.createElement('div');r.className='frow';
+    r.innerHTML='<input type="text" list="fRoles" maxlength="80" placeholder="Função (ex.: Direção)"><input type="text" maxlength="160" placeholder="Quem fez (ex.: Ana Souza e João Lima)"><button type="button" aria-label="Tirar esta linha">×</button>';
+    r.children[0].value=role||'';r.children[1].value=people||'';
+    r.children[2].onclick=()=>{r.remove();if(!$('fRows').children.length)fRow();};
+    $('fRows').appendChild(r);return r;
+  }
+  fRow('Direção','');fRow('Performance','');
+  $('fAdd').onclick=()=>{if($('fRows').children.length>=20)return toast('Até 20 funções');fRow().children[0].focus();};
+  function ficha(){return [...$('fRows').children].map(r=>({role:r.children[0].value.trim(),people:[r.children[1].value.trim()]})).filter(x=>x.role&&x.people[0]);}
+  function check3(){
+    let ok=true;
+    [...$('fRows').children].forEach(r=>{const a=r.children[0],b=r.children[1];const bad=!!(a.value.trim())!==!!(b.value.trim());a.classList.toggle('bad',bad&&!a.value.trim());b.classList.toggle('bad',bad&&!b.value.trim());if(bad)ok=false;});
+    setErr('ficha',ok?'':'Complete as linhas: cada função precisa de quem fez (ou apague a linha).');
+    if(ok&&!ficha().length){setErr('ficha','Coloque pelo menos uma função (por exemplo, Direção ou Performance).');ok=false;}
+    return ok;
+  }
+  $('fRows').addEventListener('input',e=>{e.target.classList.remove('bad');setErr('ficha');});
+  function check2t(){
+    let ok=true;
+    if(!W.pos)ok=setErr('tPos','Marque o lugar no mapa.')&&ok;
+    if(!val('mBairro'))ok=setErr('mBairro','Escreva o bairro e a cidade.')&&ok;else setErr('mBairro');
+    return ok;
+  }
+  function val(id){return ($(id).value||'').trim();}
+  function check1(){
+    let ok=true;const y=ytId($('mYt').value);
+    if(y===false)ok=setErr('mYt','Esse link não parece ser do YouTube. Copie o endereço do vídeo e cole aqui.')&&ok;
+    if(!y&&!W.fotos.length)ok=setErr('midia','Coloque um vídeo do YouTube ou pelo menos uma foto do local.')&&ok;
+    if(!val('mName'))ok=setErr('mName','Dê um nome ao monumento.')&&ok;else setErr('mName');
+    if(val('mHist').length<20)ok=setErr('mHist','Conte um pouco mais da história (pelo menos uma frase).')&&ok;else setErr('mHist');
+    return ok;
+  }
+  function check2(){
+    let ok=true;
+    if(!W.aFoto)ok=setErr('aFoto','Coloque uma foto sua para o perfil.')&&ok;
+    if(!val('aNome'))ok=setErr('aNome','Escreva o seu nome.')&&ok;else setErr('aNome');
+    if(val('aBio').length<20)ok=setErr('aBio','Escreva uma minibio (pelo menos uma frase).')&&ok;else setErr('aBio');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('aEmail')))ok=setErr('aEmail','Confira o e-mail.')&&ok;else setErr('aEmail');
+    if(!$('aOk').checked)ok=setErr('aOk','Marque para confirmar.')&&ok;else setErr('aOk');
+    return ok;
+  }
+  wiz.addEventListener('input',e=>{const id=e.target.id;if(id&&e.target.classList.contains('bad'))setErr(id);});
+  $('aOk').addEventListener('change',()=>{if($('aOk').checked)setErr('aOk');});
+  function draft(lat,lng){
+    const yt=ytId($('mYt').value)||null;
+    return {layer:'mon',name:val('mName'),artist:val('aNome'),year:val('mYear')||'',bairro:val('mBairro'),origin:'usuario',pending:true,lat,lng,raio:raio(),
+      hist:val('mHist'),fotos:W.fotos.map(f=>f.url),fotoCred:val('mCred'),ficha:ficha(),
+      _detail:{description:val('mHist'),video:yt?{provider:'youtube',id:yt}:null,ficha_tecnica:ficha()}};
+  }
+  function renderPreview(){
+    const d=draft(W.pos.lat,W.pos.lng);
+    $('pvPop').innerHTML=monPopup(d);
+    if(!W.pm){W.pm=L.map('pvMap',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,boxZoom:false,keyboard:false});baseTiles(W.pm);}
+    if(W.pt){W.pm.removeLayer(W.pt.mk);W.pm.removeLayer(W.pt.c);}
+    W.pm.invalidateSize();W.pt=terrLayers(W.pm,W.pos,d.raio,false);fitTerr(W.pm,W.pos,d.raio);
+    const f=d.ficha;
+    $('pvFicha').innerHTML=`<p class="pt">${esc(d.name)}</p><p class="pm">${esc(d.bairro)}${d.year?' · '+esc(d.year):''}</p>`+(d.fotos.length?'<div class="pfotos">'+d.fotos.slice(0,4).map(u=>`<img src="${esc(u)}" alt="">`).join('')+'</div>'+(d.fotoCred?`<p class="fcred">fotos: ${esc(d.fotoCred)}</p>`:''):'')+`<p class="ps">${esc(d.hist)}</p>`+
+      `<div class="mv3-ficha"><h3>Ficha Técnica</h3><table><tbody>${f.map(x=>`<tr><td class="mv3-ficha__role">${esc(x.role)}</td><td>${esc(x.people.join(', '))}</td></tr>`).join('')}</tbody></table></div>`;
+    const ini=esc((val('aNome')[0]||'?').toUpperCase());
+    $('pvArt').innerHTML=`<div class="ph">${W.aFoto?`<img src="${W.aFoto.url}" alt="">`:ini}</div><div style="min-width:0">
+      <b>${esc(val('aNome'))}</b>${val('aCidade')?`<span class="loc">${esc(val('aCidade'))}</span>`:''}
+      ${val('aCred')?`<span class="cred">foto: ${esc(val('aCred'))}</span>`:''}
+      <p>${esc(val('aBio'))}</p><div class="obras">1 monumento · ${esc(val('mName'))}</div></div>`;
+  }
+  async function send(lat,lng){
+    const d=draft(lat,lng);
+    if(ENVIO){
+      const fd=new FormData();
+      ['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred'].forEach(k=>fd.append(k,val(k)));
+      fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
+      W.fotos.forEach((f,i)=>fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg'));fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
+      $('wNext').disabled=true;$('wNext').textContent='Enviando…';
+      fd.append('aSite',val('aSite'));
+      let j=null;
+      try{const r=await fetch(ENVIO,{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;if(j.link)d.link=j.link;}
+      catch(e){$('wNext').disabled=false;$('wNext').textContent='Erguer monumento';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
+      $('wNext').disabled=false;
+      $('okP').textContent='Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. A equipe recebeu um aviso e vai fazer a checagem.';
+    } else {
+      $('okP').textContent='Prévia: nesta versão de teste o monumento aparece só no seu aparelho. Quando o envio for ligado, ele vai direto para o mapa dos monumentos, o seu perfil vai para Artistas e a equipe recebe um e-mail para a checagem.';
+    }
+    if(ENVIO){d.sent=true;register(d);}else{register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'&&!x.sent));}
+    refresh();W.last=d;
+    $('okT').textContent='“'+d.name+'” foi erguido';go('ok');
+  }
+  wiz.addEventListener('submit',e=>{
+    e.preventDefault();
+    const chk={1:check1,2:check2t,3:check3,4:check2}[W.step];
+    if(chk){if(chk())go(W.step+1);else wiz.querySelector('section:not([hidden]) .err:not(:empty)')?.scrollIntoView({block:'center',behavior:'smooth'});}
+    else if(W.step===LAST)send(W.pos.lat,W.pos.lng);
+    else {closeWiz();const d=W.last;if(!d)return;
+      // mostra o território inteiro e abre o monumento
+      map.once('moveend',()=>openPoint(d));map.flyToBounds(L.latLng(d.lat,d.lng).toBounds((d.raio||300)*2.4),{maxZoom:16,duration:0.8});}
+  });
+  function persist(key,arr){try{localStorage.setItem(key,JSON.stringify(arr.map(d=>({name:d.name,artist:d.artist,pending:d.pending,raio:d.raio,ficha:d.ficha,bairro:d.bairro,year:d.year,origin:d.origin,lat:d.lat,lng:d.lng,hist:d.hist,access:d.access}))));}catch(e){}}
 
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');scrimM.classList.remove('show');scrimOff.classList.remove('show');}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){scrim.classList.remove('show');closeWiz();scrimOff.classList.remove('show');}});
 
   /* ========= RELÓGIO ========= */
   function tick(){const t=new Date();document.getElementById('zulu').textContent=[t.getUTCHours(),t.getUTCMinutes(),t.getUTCSeconds()].map(v=>String(v).padStart(2,'0')).join(':')+'Z';}
