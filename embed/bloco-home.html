@@ -33,6 +33,7 @@
     .mv-wifi .mv-camadas i.wf{background:#D9D4CB}
     .mv-wifi .mv-camadas i.sh{background:#A8C686}
     .mv-wifi .mv-camadas .mv-camadas__f{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--suave)}
+    .mv3-hero .mv3-hero__cta{position:relative;z-index:30}
     .mv-anterior{margin:8px 0 28px}
     .mv-anterior__btn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;text-align:left;background:#141210;border:1px solid #2A2622;border-radius:12px;padding:14px 18px;color:#F2EDE6;cursor:pointer;font:inherit}
     .mv-anterior__btn:hover{border-color:#C67033}
@@ -85,9 +86,16 @@
       var s = (document.currentScript && document.currentScript.closest('.mv-wifi')) || document.querySelector('.mv-wifi');
       var hero = document.querySelector('.mv3-wrap > .mv3-hero');
       /* "Descubra o acervo" abre a página Monumentos (outros scripts da página não desviam o clique para o mapa). */
+      /* Vale também quando outro elemento invisível está por cima do botão: conta a área do botão na tela. */
       window.addEventListener('click', function (e) {
-        var a = e.target.closest && e.target.closest('a.mv3-hero__cta');
-        if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        var a = (e.target.closest && e.target.closest('a.mv3-hero__cta')) || null;
+        if (!a) {
+          var c = document.querySelector('a.mv3-hero__cta'); if (!c) return;
+          var r = c.getBoundingClientRect();
+          if (!(r.width && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) return;
+          a = c;
+        }
         e.preventDefault(); e.stopImmediatePropagation(); window.location.assign(a.href);
       }, true);
       if (!s || !hero) return;
