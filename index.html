@@ -303,6 +303,7 @@
   .pficha .mv3-ficha__role{color:#a89e92;padding:8px 16px 8px 0;vertical-align:top;font-weight:500;width:42%}
   .pficha .mv3-ficha td{padding:8px 0;color:#f2ede6;vertical-align:top}
   .pficha .vazio{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:14px 0 10px}
+  .ajuste{padding:12px 13px;border-radius:11px;background:#1E140D;border:1px solid #7A4520} .ajuste b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--c-mon);margin-bottom:5px} .ajuste p{margin:0;font-size:13px;line-height:1.5;color:var(--fg);white-space:pre-line}
   .okp{align-items:center;text-align:center;padding:18px 4px 8px} .okp .okic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#2A1A10;color:var(--c-mon);font-size:26px;font-weight:700;border:1px solid #7A4520}
   .okp h3{margin:4px 0 0;font-size:18px} .okp p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
   .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
@@ -375,11 +376,12 @@
 <!-- criar monumento: 1) o monumento  2) seu perfil de artista  3) como vai ficar  → enviado -->
 <div class="scrim" id="scrimM">
   <form class="modal wiz" id="wiz" novalidate>
-    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div><div><b>Erguer um monumento aqui</b><span id="wStepTxt">1 de 5 · a obra</span></div></div>
+    <div class="mh"><div class="ic p"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></div><div><b id="wTitle">Erguer um monumento aqui</b><span id="wStepTxt">1 de 5 · a obra</span></div></div>
     <div class="prog" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
     <div class="mb">
       <!-- 1. o monumento -->
       <section data-step="1">
+        <div class="ajuste" id="wAjuste" hidden><b>O que a equipe pediu para ajustar</b><p id="wAjusteTxt"></p></div>
         <div class="fld"><label for="mYt">Vídeo no YouTube <em>(link)</em></label><input type="url" id="mYt" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off"><p class="err" data-err="mYt"></p></div>
         <div class="ytprev" id="mYtPrev" hidden></div>
         <div class="fld"><span class="lbl">Fotos do local</span>
@@ -425,7 +427,7 @@
         <div class="fld"><label for="aNome">Seu nome (como artista) <i class="req">*</i></label><input type="text" id="aNome" maxlength="80" autocomplete="name"><p class="err" data-err="aNome"></p></div>
         <div class="fld"><label for="aCidade">Cidade / UF</label><input type="text" id="aCidade" maxlength="60" placeholder="ex.: Olinda, PE"></div>
         <div class="fld"><label for="aBio">Minibio <i class="req">*</i></label><textarea id="aBio" maxlength="400" placeholder="Quem é você, o que você faz, de onde você vem."></textarea><small class="cnt" data-cnt="aBio">0 / 400</small><p class="err" data-err="aBio"></p></div>
-        <div class="fld"><label for="aEmail">E-mail <i class="req">*</i></label><input type="email" id="aEmail" maxlength="120" autocomplete="email" placeholder="não aparece no site"><p class="err" data-err="aEmail"></p></div>
+        <div class="fld" id="aEmailBox"><label for="aEmail">E-mail <i class="req">*</i></label><input type="email" id="aEmail" maxlength="120" autocomplete="email" placeholder="não aparece no site"><p class="err" data-err="aEmail"></p></div>
         <input type="text" id="aSite" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
         <label class="chk"><input type="checkbox" id="aOk"><span>As fotos e o vídeo são meus ou tenho autorização para publicar. Concordo que a equipe Monumentos Virtuais confira o conteúdo.</span></label><p class="err" data-err="aOk"></p>
       </section>
@@ -439,13 +441,13 @@
         <div class="pficha" id="pvFicha"></div>
         <p class="prev-l">Na página Artistas</p>
         <div class="acard" id="pvArt"></div>
-        <div class="note p"><b>Entra no ar na hora.</b> A equipe dos Monumentos Virtuais recebe um e-mail e faz uma checagem. Se algo precisar de ajuste, a gente escreve para você.</div>
+        <div class="note p" id="pvNota"><b>Entra no ar na hora.</b> A equipe dos Monumentos Virtuais recebe um aviso e acompanha o que foi publicado. Se algo precisar de ajuste, a gente escreve para você no e-mail que você informou.</div>
       </section>
       <!-- enviado -->
       <section data-step="ok" hidden class="okp">
         <div class="okic">✓</div>
         <h3 id="okT">Monumento erguido</h3>
-        <p id="okP">Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. A equipe recebeu um aviso e vai fazer a checagem.</p>
+        <p id="okP">Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.</p>
       </section>
     </div>
     <div class="mf"><button class="btn" type="button" id="wBack">Cancelar</button><button class="btn primaryP" type="submit" id="wNext">Continuar</button></div>
@@ -598,7 +600,7 @@
   function siteItem(o){
     const lat=+o.lat,lng=+o.lng; if(!isFinite(lat)||!isFinite(lng))return null;
     if(o.type==='access_point')return {layer:'acc',name:o.title,slug:o.slug,lat,lng};
-    if(o.comunidade)return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'usuario',pending:!!o.checagem,raio:+o.raio||0,
+    if(o.comunidade)return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'usuario',raio:+o.raio||0,
       link:SITE+'/monumento/'+o.slug,hist:'Monumento inscrito pela comunidade. Abra a página para ver a obra completa.'};
     return {layer:'mon',name:o.title,artist:o.artist,year:o.year?String(o.year):'',slug:o.slug,lat,lng,origin:'acervo',
       link:SITE+'/monumento/'+o.slug,hist:'Obra de '+(o.artist||'artista')+(o.year?' ('+o.year+')':'')+' — acervo Monumentos Virtuais. Abra a página para ver a obra completa.'};
@@ -676,7 +678,7 @@
       <div class="type" style="color:${COLORS.mon}">${LABEL.mon}</div>
       <h3>${esc(d.name)}</h3>${artist}${d.bairro?`<p class="addr">${esc(d.bairro)}</p>`:''}
       ${coverHtml(d)}${(fotosOf(d).length&&d._detail&&d._detail.video)?'<div class="pfotos">'+fotosOf(d).slice(0,4).map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')+'</div>':''}${(fotosOf(d).length&&credOf(d))?`<p class="fcred">fotos: ${esc(credOf(d))}</p>`:''}
-      <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span>${d.pending?'<span class="chip checagem">em checagem</span>':'<span class="chip">acesso via navegador</span>'}</div>
+      <div class="chips"><span class="chip ${o}">${ORIGIN[o]}</span><span class="chip">acesso via navegador</span></div>
       <p class="hist" data-desc>${esc((d._detail&&d._detail.description)||d.hist||'')}</p>${fichaHtml(d)}
       ${verBtn}
     </div></div>`;
@@ -703,7 +705,7 @@
   }
   function fillMonument(popup,d){
     if(d._detail||!d.slug)return;
-    getMonument(d.slug).then(m=>{d._detail=m||null;if(m&&m.comunidade){d.pending=!!m.checagem;if(m.raio)d.raio=+m.raio;}if(popup.isOpen())popup.update();});
+    getMonument(d.slug).then(m=>{d._detail=m||null;if(m&&m.comunidade&&m.raio)d.raio=+m.raio;if(popup.isOpen())popup.update();});
   }
   // tocar o vídeo dentro da janela
   document.addEventListener('click',e=>{
@@ -1063,7 +1065,7 @@
     $('wStepTxt').textContent=STEP_TXT[st];
     wiz.querySelectorAll('.prog i').forEach((x,i)=>x.classList.toggle('on',st==='ok'||i<st));
     $('wBack').textContent=st===1?'Cancelar':(st==='ok'?'Fechar':'Voltar');
-    $('wNext').textContent=st===LAST?'Erguer monumento':(st==='ok'?'Ver no mapa':'Continuar');
+    $('wNext').textContent=st===LAST?(W.edit?'Enviar ajustes':'Erguer monumento'):(st==='ok'?(W.edit?'Fechar':'Ver no mapa'):'Continuar');
     $('wBack').hidden=false;
     if(st===2)setTimeout(initTerr,30);
     if(st===LAST)setTimeout(renderPreview,30);
@@ -1100,11 +1102,11 @@
     drawThumbs();if(W.fotos.length)setErr('midia');
     if(W.fotos.length>=8)toast('Limite de 8 fotos');
   });
-  $('mThumbs').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;const f=W.fotos.splice(+b.dataset.rm,1)[0];if(f)URL.revokeObjectURL(f.url);drawThumbs();});
+  $('mThumbs').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;const f=W.fotos.splice(+b.dataset.rm,1)[0];if(f&&f.blob)URL.revokeObjectURL(f.url);drawThumbs();});
   // foto do artista
   $('aFoto').addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f||!/^image\//.test(f.type))return;
-    const r=await shrink(f,800);if(!r)return;if(W.aFoto)URL.revokeObjectURL(W.aFoto.url);W.aFoto=r;
+    const r=await shrink(f,800);if(!r)return;if(W.aFoto&&W.aFoto.blob)URL.revokeObjectURL(W.aFoto.url);W.aFoto=r;
     $('aFotoPh').innerHTML=`<img src="${r.url}" alt="sua foto">`;$('aFotoPh').classList.add('has');setErr('aFoto');
   });
   // território: marcador arrastável + raio
@@ -1134,7 +1136,8 @@
       W.t.mk.on('dragend',e=>{const ll=e.target.getLatLng();setPos(ll.lat,ll.lng);autoBairro();});
       W.tm.on('click',e=>{if(W.mode!=='pick')setMode('pick');setPos(e.latlng.lat,e.latlng.lng);autoBairro();});
       setPos(W.pos.lat,W.pos.lng);fitTerr(W.tm,W.pos,raio());
-      if(me){setMode('gps');autoBairro();}
+      if(W.edit){setMode('pick');}
+      else if(me){setMode('gps');autoBairro();}
       else if(navigator.geolocation){setMode('gps');navigator.geolocation.getCurrentPosition(p=>{if(!W.moved){setPos(p.coords.latitude,p.coords.longitude,true);autoBairro();}},()=>{if(!W.moved)setMode('pick');},{timeout:6000,maximumAge:60000});}
       else setMode('pick');
       W.t.mk.on('dragstart',()=>W.moved=true);W.tm.on('click',()=>W.moved=true);
@@ -1227,7 +1230,7 @@
     if(!W.aFoto)ok=setErr('aFoto','Coloque uma foto sua para o perfil.')&&ok;
     if(!val('aNome'))ok=setErr('aNome','Escreva o seu nome.')&&ok;else setErr('aNome');
     if(val('aBio').length<20)ok=setErr('aBio','Escreva uma minibio (pelo menos uma frase).')&&ok;else setErr('aBio');
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('aEmail')))ok=setErr('aEmail','Confira o e-mail.')&&ok;else setErr('aEmail');
+    if(!W.edit&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('aEmail')))ok=setErr('aEmail','Confira o e-mail.')&&ok;else setErr('aEmail');
     if(!$('aOk').checked)ok=setErr('aOk','Marque para confirmar.')&&ok;else setErr('aOk');
     return ok;
   }
@@ -1235,7 +1238,7 @@
   $('aOk').addEventListener('change',()=>{if($('aOk').checked)setErr('aOk');});
   function draft(lat,lng){
     const yt=ytId($('mYt').value)||null;
-    return {layer:'mon',name:val('mName'),artist:val('aNome'),year:val('mYear')||'',bairro:val('mBairro'),origin:'usuario',pending:true,lat,lng,raio:raio(),
+    return {layer:'mon',name:val('mName'),artist:val('aNome'),year:val('mYear')||'',bairro:val('mBairro'),origin:'usuario',lat,lng,raio:raio(),
       hist:val('mHist'),fotos:W.fotos.map(f=>f.url),fotoCred:val('mCred'),ficha:ficha(),
       _detail:{description:val('mHist'),video:yt?{provider:'youtube',id:yt}:null,ficha_tecnica:ficha()}};
   }
@@ -1255,6 +1258,7 @@
       <p>${esc(val('aBio'))}</p><div class="obras">1 monumento · ${esc(val('mName'))}</div></div>`;
   }
   async function send(lat,lng){
+    if(W.edit)return sendAjuste(lat,lng);
     const d=draft(lat,lng);
     if(ENVIO){
       const fd=new FormData();
@@ -1267,19 +1271,61 @@
       try{const r=await fetch(ENVIO,{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;if(j.link)d.link=j.link;}
       catch(e){$('wNext').disabled=false;$('wNext').textContent='Erguer monumento';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
       $('wNext').disabled=false;
-      $('okP').textContent='Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. A equipe recebeu um aviso e vai fazer a checagem.';
+      $('okP').textContent='Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.';
     } else {
-      $('okP').textContent='Prévia: nesta versão de teste o monumento aparece só no seu aparelho. Quando o envio for ligado, ele vai direto para o mapa dos monumentos, o seu perfil vai para Artistas e a equipe recebe um e-mail para a checagem.';
+      $('okP').textContent='Prévia: nesta versão de teste o monumento aparece só no seu aparelho. No site, ele vai direto para o mapa dos monumentos e o seu perfil vai para Artistas.';
     }
     if(ENVIO){d.sent=true;register(d);}else{register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'&&!x.sent));}
     refresh();W.last=d;
     $('okT').textContent='“'+d.name+'” foi erguido';go('ok');
   }
+  // ---- ajuste pedido pela equipe: o mesmo formulário, já preenchido, aberto pelo link do e-mail
+  const API=ENVIO?ENVIO.replace(/enviar$/,''):null;
+  async function sendAjuste(lat,lng){
+    const d=draft(lat,lng),fd=new FormData();
+    ['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aCred'].forEach(k=>fd.append(k,val(k)));
+    fd.append('id',W.edit.id);fd.append('k',W.edit.k);fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
+    W.fotos.forEach((f,i)=>{if(f.existing)fd.append('manter[]',f.id);else fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg');});
+    if(W.aFoto&&W.aFoto.blob)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
+    $('wNext').disabled=true;$('wNext').textContent='Enviando…';let j=null;
+    try{const r=await fetch(API+'ajustar',{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;}
+    catch(e){$('wNext').disabled=false;$('wNext').textContent='Enviar ajustes';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
+    $('wNext').disabled=false;
+    $('okT').textContent='Ajustes enviados';
+    $('okP').textContent='A equipe dos Monumentos Virtuais vai conferir e publicar. Você recebe um e-mail quando estiver no ar. Se quiser mudar mais alguma coisa, é só abrir o mesmo link de novo.';
+    go('ok');
+  }
+  async function abrirEdicao(id,k){
+    gate.hidden=true;
+    const falha=msg=>{W.edit=null;go('ok');$('wTitle').textContent='Ajustar o seu monumento';$('okT').textContent='Não foi possível abrir';$('okP').textContent=msg;$('wNext').textContent='Fechar';scrimM.classList.add('show');};
+    if(!API)return falha('Abra este link no site monumentosvirtuais.ong.br.');
+    let j=null;
+    try{const r=await fetch(API+'editar?id='+encodeURIComponent(id)+'&k='+encodeURIComponent(k),{cache:'no-store'});j=await r.json();if(!r.ok||!j.ok)throw 0;}
+    catch(e){return falha((j&&j.erro)||'Sem internet para abrir o seu monumento agora. Tente de novo em um Wi-Fi.');}
+    W.edit={id,k};
+    $('wTitle').textContent='Ajustar o seu monumento';
+    $('wAjusteTxt').textContent=j.ajuste||'';$('wAjuste').hidden=!j.ajuste;
+    $('mYt').value=j.yt?'https://youtu.be/'+j.yt:'';$('mYt').dispatchEvent(new Event('input'));
+    W.fotos=(j.fotos||[]).map(f=>({id:f.id,url:f.url,existing:true}));drawThumbs();$('mCred').value=j.fotos_credito||'';
+    $('mName').value=j.nome||'';$('mYear').value=j.ano||'';$('mHist').value=j.historia||'';
+    $('mBairro').value=j.bairro||'';W.bairroManual=true;W.pos={lat:+j.lat,lng:+j.lng};W.moved=true;
+    const ri=RAIOS.indexOf(+j.raio);$('tRaio').value=ri<0?3:ri;$('tRaioTxt').textContent=fmtM(raio());
+    $('fRows').innerHTML='';(j.ficha||[]).forEach(f=>fRow(f.role,(f.people||[]).join(', ')));if(!$('fRows').children.length)fRow();
+    const a=j.artista||{};$('aNome').value=a.nome||'';$('aCidade').value=a.cidade||'';$('aBio').value=a.bio||'';$('aCred').value=a.credito||'';
+    if(a.foto){W.aFoto={url:a.foto,existing:true};$('aFotoPh').innerHTML=`<img src="${esc(a.foto)}" alt="sua foto">`;$('aFotoPh').classList.add('has');}
+    $('aEmailBox').hidden=true;
+    $('pvNota').innerHTML='<b>Os ajustes vão para a equipe.</b> Assim que forem conferidos, entram no ar e você recebe um e-mail.';
+    ['mHist','aBio'].forEach(x=>$(x).dispatchEvent(new Event('input')));
+    go(1);scrimM.classList.add('show');
+  }
+  {const q=new URLSearchParams(location.search);if(q.get('editar')&&q.get('k'))abrirEdicao(q.get('editar'),q.get('k'));}
+
   wiz.addEventListener('submit',e=>{
     e.preventDefault();
     const chk={1:check1,2:check2t,3:check3,4:check2}[W.step];
     if(chk){if(chk())go(W.step+1);else wiz.querySelector('section:not([hidden]) .err:not(:empty)')?.scrollIntoView({block:'center',behavior:'smooth'});}
     else if(W.step===LAST)send(W.pos.lat,W.pos.lng);
+    else if(W.edit||!W.last){closeWiz();if(W.edit)history.replaceState(null,'',location.pathname);}
     else {closeWiz();const d=W.last;if(!d)return;
       // mostra o território inteiro e abre o monumento
       map.once('moveend',()=>openPoint(d));map.flyToBounds(L.latLng(d.lat,d.lng).toBounds((d.raio||300)*2.4),{maxZoom:16,duration:0.8});}
