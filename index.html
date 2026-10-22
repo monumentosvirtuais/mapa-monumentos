@@ -1390,7 +1390,10 @@
     ['mHist','aBio'].forEach(x=>$(x).dispatchEvent(new Event('input')));
     go(1);scrimM.classList.add('show');
   }
-  {const q=new URLSearchParams(location.search);if(q.get('editar')&&q.get('k'))abrirEdicao(q.get('editar'),q.get('k'));}
+  {const q=new URLSearchParams(location.search);
+    if(q.get('editar')&&q.get('k'))abrirEdicao(q.get('editar'),q.get('k'));
+    // link "Participar" (página Processos): abre direto o formulário de inscrição
+    else if(q.get('erguer')!==null){gate.hidden=true;history.replaceState(null,'',location.pathname);openWiz();}}
 
   wiz.addEventListener('submit',e=>{
     e.preventDefault();
