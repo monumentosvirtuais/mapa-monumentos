@@ -311,6 +311,7 @@
   .tres button.art{display:flex;gap:10px;align-items:center} .tres button.art i{width:30px;height:30px;border-radius:50%;flex:none;background:#2A1A10 center/cover no-repeat;font-style:normal}
   .aviso{margin:6px 0 0;font-size:12px;line-height:1.45;color:#E3C46F} .aviso button{background:none;border:0;color:var(--c-mon);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
   .hint2{display:block;margin-top:5px;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .okp .okp-eq{font-size:12px!important;color:var(--faint)!important}
   .okp{align-items:center;text-align:center;padding:18px 4px 8px} .okp .okic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#2A1A10;color:var(--c-mon);font-size:26px;font-weight:700;border:1px solid #7A4520}
   .okp h3{margin:4px 0 0;font-size:18px} .okp p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
   .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
@@ -391,6 +392,7 @@
         <div class="ajuste" id="wAjuste" hidden><b>O que a equipe pediu para ajustar</b><p id="wAjusteTxt"></p></div>
         <div class="fld"><label for="mYt">Vídeo no YouTube <em>(link)</em></label><input type="url" id="mYt" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off"><p class="err" data-err="mYt"></p></div>
         <div class="ytprev" id="mYtPrev" hidden></div>
+        <div class="fld"><label for="mDrive">O YouTube bloqueou a sua obra? <em>(link do Google Drive)</em></label><input type="url" id="mDrive" inputmode="url" maxlength="300" placeholder="https://drive.google.com/…" autocomplete="off"><small class="hint2">Envie o vídeo por um link do Google Drive aberto para quem tiver o link. A equipe é pequena: pode demorar um pouco para respondermos, mas a resposta vem.</small><p class="err" data-err="mDrive"></p></div>
         <div class="fld"><span class="lbl">Fotos do local</span>
           <label class="drop" for="mFotos"><b>+ Adicionar fotos</b><br>até 8 fotos da obra e do lugar</label>
           <input type="file" id="mFotos" accept="image/*" multiple hidden>
@@ -459,13 +461,15 @@
         <div class="pficha" id="pvFicha"></div>
         <p class="prev-l">Na página Artistas</p>
         <div class="acard" id="pvArt"></div>
-        <div class="note p" id="pvNota"><b>Entra no ar na hora.</b> A equipe dos Monumentos Virtuais recebe um aviso e acompanha o que foi publicado. Se algo precisar de ajuste, a gente escreve para você no e-mail que você informou.</div>
+        <div class="note" id="pvDrive" hidden><b>Vídeo pelo Google Drive:</b> a equipe vai colocar o seu vídeo na página do monumento. Isso pode levar alguns dias; até lá, a obra aparece com a história e as fotos.</div>
+        <div class="note p" id="pvNota"><b>Entra no ar na hora.</b> A equipe dos Monumentos Virtuais recebe um aviso e acompanha o que foi publicado. Se algo precisar de ajuste, a gente escreve para você no e-mail que você informou. Somos uma equipe pequena: a resposta pode demorar um pouco, mas ela vem.</div>
       </section>
       <!-- enviado -->
       <section data-step="ok" hidden class="okp">
         <div class="okic">✓</div>
         <h3 id="okT">Monumento erguido</h3>
         <p id="okP">Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.</p>
+        <p class="okp-eq" id="okEq">Somos uma equipe pequena: a resposta pode demorar um pouco, mas ela vem.</p>
       </section>
     </div>
     <div class="mf"><button class="btn" type="button" id="wBack">Cancelar</button><button class="btn primaryP" type="submit" id="wNext">Continuar</button></div>
@@ -1097,6 +1101,7 @@
   // contadores
   wiz.querySelectorAll('[data-cnt]').forEach(c=>{const f=$(c.dataset.cnt);const up=()=>c.textContent=f.value.length+' / '+f.maxLength;f.addEventListener('input',up);up();});
   // vídeo do YouTube
+  $('mDrive').addEventListener('input',()=>{if(val('mDrive'))setErr('midia');});
   $('mYt').addEventListener('input',()=>{
     const id=ytId($('mYt').value);W.yt=id||null;const pv=$('mYtPrev');
     if(id){pv.innerHTML=`<img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt=""><span>▶ vídeo encontrado</span>`;pv.hidden=false;setErr('mYt');setErr('midia');}
@@ -1236,9 +1241,10 @@
   }
   function val(id){return ($(id).value||'').trim();}
   function check1(){
-    let ok=true;const y=ytId($('mYt').value);
+    let ok=true;const y=ytId($('mYt').value);const dv=val('mDrive');
+    if(dv&&!/^https:\/\/\S+\.\S+/.test(dv))ok=setErr('mDrive','Cole o link completo do Drive, começando com https://')&&ok;else setErr('mDrive');
     if(y===false)ok=setErr('mYt','Esse link não parece ser do YouTube. Copie o endereço do vídeo e cole aqui.')&&ok;
-    if(!y&&!W.fotos.length)ok=setErr('midia','Coloque um vídeo do YouTube ou pelo menos uma foto do local.')&&ok;
+    if(!y&&!dv&&!W.fotos.length)ok=setErr('midia','Coloque um vídeo (YouTube ou Google Drive) ou pelo menos uma foto do local.')&&ok;
     if(!val('mName'))ok=setErr('mName','Dê um nome ao monumento.')&&ok;else setErr('mName');
     if(val('mHist').length<20)ok=setErr('mHist','Conte um pouco mais da história (pelo menos uma frase).')&&ok;else setErr('mHist');
     return ok;
@@ -1314,6 +1320,7 @@
     const f=d.ficha;
     $('pvFicha').innerHTML=`<p class="pt">${esc(d.name)}</p><p class="pm">${esc(d.bairro)}${d.year?' · '+esc(d.year):''}</p>`+(d.fotos.length?'<div class="pfotos">'+d.fotos.slice(0,4).map(u=>`<img src="${esc(u)}" alt="">`).join('')+'</div>'+(d.fotoCred?`<p class="fcred">fotos: ${esc(d.fotoCred)}</p>`:''):'')+`<p class="ps">${esc(d.hist)}</p>`+
       `<div class="mv3-ficha"><h3>Ficha Técnica</h3><table><tbody>${f.map(x=>`<tr><td class="mv3-ficha__role">${esc(x.role)}</td><td>${esc(x.people.join(', '))}</td></tr>`).join('')}</tbody></table></div>`;
+    $('pvDrive').hidden=!val('mDrive')||ytId($('mYt').value);
     if(W.perfil==='existe'&&W.artista){const a=W.artista;
       $('pvArt').innerHTML=`<div class="ph">${a.foto?`<img src="${esc(a.foto)}" alt="">`:esc((a.nome[0]||'?').toUpperCase())}</div><div style="min-width:0"><b>${esc(a.nome)}</b>${a.cidade?`<span class="loc">${esc(a.cidade)}</span>`:''}<p>O seu perfil continua como está. Este monumento entra na lista das suas obras.</p><div class="obras">+ ${esc(val('mName'))}</div></div>`;
       return;}
@@ -1329,7 +1336,7 @@
     if(ENVIO){
       const fd=new FormData();
       const existe=W.perfil==='existe'&&W.artista;
-      (existe?['mYt','mName','mYear','mBairro','mHist','mCred','aEmail']:['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred']).forEach(k=>fd.append(k,val(k)));
+      (existe?['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aEmail']:['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred']).forEach(k=>fd.append(k,val(k)));
       if(existe)fd.append('artistaId',W.artista.id);
       fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
       W.fotos.forEach((f,i)=>fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg'));if(!existe)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
@@ -1353,7 +1360,7 @@
   const API=ENVIO?ENVIO.replace(/enviar$/,''):null;
   async function sendAjuste(lat,lng){
     const d=draft(lat,lng),fd=new FormData();
-    ['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aCred'].forEach(k=>fd.append(k,val(k)));
+    ['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aCred'].forEach(k=>fd.append(k,val(k)));
     fd.append('id',W.edit.id);fd.append('k',W.edit.k);fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
     W.fotos.forEach((f,i)=>{if(f.existing)fd.append('manter[]',f.id);else fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg');});
     if(W.aFoto&&W.aFoto.blob)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
@@ -1375,7 +1382,7 @@
     W.edit={id,k};
     $('wTitle').textContent='Ajustar o seu monumento';
     $('wAjusteTxt').textContent=j.ajuste||'';$('wAjuste').hidden=!j.ajuste;
-    $('mYt').value=j.yt?'https://youtu.be/'+j.yt:'';$('mYt').dispatchEvent(new Event('input'));
+    $('mYt').value=j.yt?'https://youtu.be/'+j.yt:'';$('mYt').dispatchEvent(new Event('input'));$('mDrive').value=j.drive||'';
     W.fotos=(j.fotos||[]).map(f=>({id:f.id,url:f.url,existing:true}));drawThumbs();$('mCred').value=j.fotos_credito||'';
     $('mName').value=j.nome||'';$('mYear').value=j.ano||'';$('mHist').value=j.historia||'';
     $('mBairro').value=j.bairro||'';W.bairroManual=true;W.pos={lat:+j.lat,lng:+j.lng};W.moved=true;

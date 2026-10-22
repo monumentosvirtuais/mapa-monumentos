@@ -100,6 +100,7 @@ function mve_campos( WP_REST_Request $r, $edicao = false, $sem_perfil = false ) 
 		'bairro' => mve_txt( $r, 'mBairro', 60 ),
 		'fcred'  => mve_txt( $r, 'mCred', 120 ),
 		'yt'     => mve_ytid( $r->get_param( 'mYt' ) ),
+		'drive'  => mb_substr( trim( (string) $r->get_param( 'mDrive' ) ), 0, 300 ),
 		'lat'    => (float) $r->get_param( 'lat' ),
 		'lng'    => (float) $r->get_param( 'lng' ),
 		'raio'   => (int) $r->get_param( 'raio' ),
@@ -113,6 +114,10 @@ function mve_campos( WP_REST_Request $r, $edicao = false, $sem_perfil = false ) 
 	if ( '' === $c['nome'] ) { return mve_erro( 'Falta o nome do monumento.' ); }
 	if ( mb_strlen( $c['hist'] ) < 20 ) { return mve_erro( 'Conte um pouco mais da história.' ); }
 	if ( false === $c['yt'] ) { return mve_erro( 'O link do vídeo não é do YouTube.' ); }
+	if ( '' !== $c['drive'] ) {
+		$c['drive'] = esc_url_raw( $c['drive'], array( 'https' ) );
+		if ( '' === $c['drive'] ) { return mve_erro( 'Cole o link completo do Drive, começando com https://' ); }
+	}
 	if ( '' !== $c['ano'] && ( (int) $c['ano'] < 1900 || (int) $c['ano'] > 2100 ) ) { $c['ano'] = ''; }
 	if ( '' === $c['bairro'] ) { return mve_erro( 'Falta o bairro / cidade.' ); }
 	if ( ! $c['lat'] || ! $c['lng'] || abs( $c['lat'] ) > 90 || abs( $c['lng'] ) > 180 ) { return mve_erro( 'Falta marcar o lugar no mapa.' ); }
@@ -143,7 +148,7 @@ function mve_atual( $mon ) {
 	return array(
 		'nome' => $m->post_title, 'hist' => $m->post_content, 'ano' => (string) get_post_meta( $mon, '_mv3_year', true ),
 		'bairro' => (string) get_post_meta( $mon, '_mv3_city', true ), 'fcred' => (string) get_post_meta( $mon, '_mve_fotos_credito', true ),
-		'yt' => (string) get_post_meta( $mon, '_mv3_ytid', true ), 'lat' => (float) get_post_meta( $mon, '_mv3_lat', true ), 'lng' => (float) get_post_meta( $mon, '_mv3_lng', true ),
+		'yt' => (string) get_post_meta( $mon, '_mv3_ytid', true ), 'drive' => (string) get_post_meta( $mon, '_mve_drive', true ), 'lat' => (float) get_post_meta( $mon, '_mv3_lat', true ), 'lng' => (float) get_post_meta( $mon, '_mv3_lng', true ),
 		'raio' => (int) get_post_meta( $mon, '_mve_raio', true ), 'ficha' => (string) get_post_meta( $mon, '_mv3_ficha', true ),
 		'anome' => $a ? get_the_title( $a ) : '', 'acid' => $a ? (string) get_post_meta( $a, '_mv3_city', true ) : '',
 		'abio' => $a ? (string) get_post_field( 'post_content', $a ) : '', 'acred' => $a ? (string) get_post_meta( $a, '_mv3_photo_credit', true ) : '',
@@ -184,7 +189,7 @@ function mve_enviar( WP_REST_Request $r ) {
 
 	$fotos = array_slice( mve_arquivos( 'fotos' ), 0, MVE_MAX_FOTOS );
 	foreach ( $fotos as $f ) { if ( ! mve_imagem_ok( $f ) ) { return mve_erro( 'Uma das fotos não pôde ser lida. Use JPG ou PNG.' ); } }
-	if ( ! $c['yt'] && ! $fotos ) { return mve_erro( 'Coloque um vídeo do YouTube ou pelo menos uma foto.' ); }
+	if ( ! $c['yt'] && ! $c['drive'] && ! $fotos ) { return mve_erro( 'Coloque um vídeo (YouTube ou Google Drive) ou pelo menos uma foto.' ); }
 	$perfil = $art_id ? array() : mve_arquivos( 'aFoto' );
 	if ( ! $art_id && ( ! $perfil || ! mve_imagem_ok( $perfil[0] ) ) ) { return mve_erro( 'Falta a sua foto de perfil (JPG ou PNG).' ); }
 	$lim = mve_limite();
@@ -252,7 +257,7 @@ function mve_enviar( WP_REST_Request $r ) {
 function mve_gravar_monumento( $mon, $c ) {
 	$meta = array(
 		'_mv3_lat' => $c['lat'], '_mv3_lng' => $c['lng'], '_mv3_city' => $c['bairro'], '_mv3_year' => $c['ano'],
-		'_mv3_ytid' => $c['yt'] ? $c['yt'] : '', '_mv3_ficha' => $c['ficha'], '_mve_raio' => $c['raio'], '_mve_fotos_credito' => $c['fcred'],
+		'_mv3_ytid' => $c['yt'] ? $c['yt'] : '', '_mve_drive' => isset( $c['drive'] ) ? $c['drive'] : '', '_mv3_ficha' => $c['ficha'], '_mve_raio' => $c['raio'], '_mve_fotos_credito' => $c['fcred'],
 	);
 	foreach ( $meta as $k => $v ) { update_post_meta( $mon, $k, $v ); }
 }
@@ -290,7 +295,7 @@ function mve_editar( WP_REST_Request $r ) {
 	foreach ( (array) $v['fotos'] as $f ) { $u = wp_get_attachment_image_url( $f, 'large' ); if ( $u ) { $fotos[] = array( 'id' => (int) $f, 'url' => $u ); } }
 	return array(
 		'ok' => true, 'ajuste' => (string) get_post_meta( $mon, '_mve_ajuste_msg', true ), 'enviado' => is_array( $p ),
-		'nome' => $v['nome'], 'historia' => $v['hist'], 'ano' => $v['ano'], 'bairro' => $v['bairro'], 'yt' => $v['yt'],
+		'nome' => $v['nome'], 'historia' => $v['hist'], 'ano' => $v['ano'], 'bairro' => $v['bairro'], 'yt' => $v['yt'], 'drive' => isset( $v['drive'] ) ? $v['drive'] : '',
 		'lat' => $v['lat'], 'lng' => $v['lng'], 'raio' => $v['raio'], 'ficha' => $ficha, 'fotos' => $fotos, 'fotos_credito' => $v['fcred'],
 		'artista' => array( 'nome' => $v['anome'], 'cidade' => $v['acid'], 'bio' => $v['abio'], 'credito' => $v['acred'], 'existente' => ( '1' === get_post_meta( $mon, '_mve_perfil_existente', true ) ),
 			'foto' => $v['retrato'] ? wp_get_attachment_image_url( $v['retrato'], 'medium' ) : '' ),
@@ -313,7 +318,7 @@ function mve_ajustar( WP_REST_Request $r ) {
 	$manter = array_values( array_intersect( array_map( 'intval', (array) $r->get_param( 'manter' ) ), $validas ) );
 	$novas  = array_slice( mve_arquivos( 'fotos' ), 0, max( 0, MVE_MAX_FOTOS - count( $manter ) ) );
 	foreach ( $novas as $f ) { if ( ! mve_imagem_ok( $f ) ) { return mve_erro( 'Uma das fotos não pôde ser lida. Use JPG ou PNG.' ); } }
-	if ( ! $c['yt'] && ! $manter && ! $novas ) { return mve_erro( 'Coloque um vídeo do YouTube ou pelo menos uma foto.' ); }
+	if ( ! $c['yt'] && ! $c['drive'] && ! $manter && ! $novas ) { return mve_erro( 'Coloque um vídeo (YouTube ou Google Drive) ou pelo menos uma foto.' ); }
 	$perfil = $travado ? array() : mve_arquivos( 'aFoto' );
 	if ( $perfil && ! mve_imagem_ok( $perfil[0] ) ) { return mve_erro( 'A sua foto de perfil não pôde ser lida. Use JPG ou PNG.' ); }
 	$lim = mve_limite( 'mve_aj_' . $mon, 10 ); // ajustes têm limite próprio, por monumento
@@ -448,6 +453,7 @@ function mve_email_inscrito( $mon, $modo ) {
 	$h .= mve_lin( 'E-mail do artista', '<a href="mailto:' . esc_attr( $email ) . '" style="color:#A35A27">' . $e( $email ) . '</a>' );
 	$h .= mve_lin( 'Território', '<a href="' . esc_url( $mapa ) . '" style="color:#A35A27">' . $e( $v['lat'] . ', ' . $v['lng'] ) . '</a> · raio de ' . $e( mve_raio_txt( $v['raio'] ) ) );
 	$h .= mve_lin( 'Vídeo', $v['yt'] ? '<a href="' . esc_url( 'https://www.youtube.com/watch?v=' . $v['yt'] ) . '" style="color:#A35A27">youtube.com/watch?v=' . $e( $v['yt'] ) . '</a>' : '—' );
+	if ( $v['drive'] ) { $h .= mve_lin( 'Vídeo no Drive', '<a href="' . esc_url( $v['drive'] ) . '" style="color:#A35A27;word-break:break-all">' . $e( $v['drive'] ) . '</a><br><span style="color:#A35A27">O YouTube bloqueou a obra: o vídeo precisa ser publicado pela equipe.</span>' ); }
 	$h .= mve_lin( 'Fotos', $v['fotos'] ? count( $v['fotos'] ) . ( $v['fcred'] ? ' · autoria: ' . $e( $v['fcred'] ) : '' ) . '<br>' . mve_miniaturas( $v['fotos'] ) : '—' );
 	$h .= mve_lin( 'História', nl2br( $e( $v['hist'] ) ) );
 	$h .= mve_lin( 'Ficha técnica', mve_ficha_html( $v['ficha'] ) );
@@ -473,7 +479,7 @@ function mve_email_pedido( $mon, $msg, $link, $fora ) {
 /** Para a equipe: a pessoa enviou os ajustes (antes → depois). */
 function mve_email_ajustado( $mon ) {
 	$a = mve_atual( $mon ); $p = get_post_meta( $mon, '_mve_pendente', true ); $e = 'esc_html';
-	$campos = array( 'nome' => 'Nome do monumento', 'hist' => 'História', 'ano' => 'Ano', 'bairro' => 'Bairro / cidade', 'yt' => 'Vídeo', 'raio' => 'Território', 'ficha' => 'Ficha técnica', 'fcred' => 'Autoria das fotos', 'anome' => 'Nome do artista', 'acid' => 'Cidade do artista', 'abio' => 'Minibio', 'acred' => 'Autoria da foto do perfil' );
+	$campos = array( 'nome' => 'Nome do monumento', 'hist' => 'História', 'ano' => 'Ano', 'bairro' => 'Bairro / cidade', 'yt' => 'Vídeo', 'drive' => 'Vídeo no Drive', 'raio' => 'Território', 'ficha' => 'Ficha técnica', 'fcred' => 'Autoria das fotos', 'anome' => 'Nome do artista', 'acid' => 'Cidade do artista', 'abio' => 'Minibio', 'acred' => 'Autoria da foto do perfil' );
 	$fmt = function ( $k, $x ) use ( $e ) {
 		if ( 'ficha' === $k ) { return mve_ficha_html( $x ); }
 		if ( 'raio' === $k ) { return $e( mve_raio_txt( $x ) ); }
@@ -482,8 +488,8 @@ function mve_email_ajustado( $mon ) {
 	};
 	$mud = '';
 	foreach ( $campos as $k => $rot ) {
-		if ( (string) $a[ $k ] === (string) $p[ $k ] ) { continue; }
-		$mud .= mve_lin( $rot, '<div style="color:#9a8f84;text-decoration:line-through;margin-bottom:6px">' . $fmt( $k, $a[ $k ] ) . '</div><div>' . $fmt( $k, $p[ $k ] ) . '</div>' );
+		if ( (string) ( $a[ $k ] ?? '' ) === (string) ( $p[ $k ] ?? '' ) ) { continue; }
+		$mud .= mve_lin( $rot, '<div style="color:#9a8f84;text-decoration:line-through;margin-bottom:6px">' . $fmt( $k, $a[ $k ] ?? '' ) . '</div><div>' . $fmt( $k, $p[ $k ] ?? '' ) . '</div>' );
 	}
 	if ( abs( $a['lat'] - $p['lat'] ) > 0.00001 || abs( $a['lng'] - $p['lng'] ) > 0.00001 ) {
 		$mud .= mve_lin( 'Lugar no mapa', 'mudou para <a href="' . esc_url( 'https://www.openstreetmap.org/?mlat=' . $p['lat'] . '&mlon=' . $p['lng'] . '#map=17/' . $p['lat'] . '/' . $p['lng'] ) . '" style="color:#A35A27">' . $e( round( $p['lat'], 5 ) . ', ' . round( $p['lng'], 5 ) ) . '</a>' );
