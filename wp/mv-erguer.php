@@ -85,12 +85,14 @@ function mve_dominio() {
 }
 function mve_artista_de( $mon ) { return (int) get_post_meta( $mon, '_mv3_artist_id', true ); }
 function mve_email_de( $mon ) {
+	$m = (string) get_post_meta( $mon, '_mve_email_envio', true );
+	if ( $m ) { return $m; }
 	$a = mve_artista_de( $mon );
 	return $a ? (string) get_post_meta( $a, '_mve_email', true ) : '';
 }
 
 /** Lê e confere os campos do formulário. Na edição o e-mail não muda. Devolve array ou resposta de erro. */
-function mve_campos( WP_REST_Request $r, $edicao = false ) {
+function mve_campos( WP_REST_Request $r, $edicao = false, $sem_perfil = false ) {
 	$c = array(
 		'nome'   => mve_txt( $r, 'mName', 90 ),
 		'hist'   => mve_area( $r, 'mHist', 1200 ),
@@ -115,8 +117,8 @@ function mve_campos( WP_REST_Request $r, $edicao = false ) {
 	if ( '' === $c['bairro'] ) { return mve_erro( 'Falta o bairro / cidade.' ); }
 	if ( ! $c['lat'] || ! $c['lng'] || abs( $c['lat'] ) > 90 || abs( $c['lng'] ) > 180 ) { return mve_erro( 'Falta marcar o lugar no mapa.' ); }
 	if ( ! in_array( $c['raio'], MVE_RAIOS, true ) ) { $c['raio'] = 300; }
-	if ( '' === $c['anome'] ) { return mve_erro( 'Falta o seu nome.' ); }
-	if ( mb_strlen( $c['abio'] ) < 20 ) { return mve_erro( 'Escreva uma minibio.' ); }
+	if ( ! $sem_perfil && '' === $c['anome'] ) { return mve_erro( 'Falta o seu nome.' ); }
+	if ( ! $sem_perfil && mb_strlen( $c['abio'] ) < 20 ) { return mve_erro( 'Escreva uma minibio.' ); }
 	if ( ! $edicao && ! is_email( $c['email'] ) ) { return mve_erro( 'Confira o e-mail.' ); }
 	$linhas = array();
 	$ficha  = json_decode( (string) $r->get_param( 'ficha' ), true );
@@ -157,25 +159,46 @@ add_action( 'rest_api_init', function () {
 	register_rest_route( 'mv-erguer/v1', '/enviar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_enviar' ) );
 	register_rest_route( 'mv-erguer/v1', '/editar', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'mve_editar' ) );
 	register_rest_route( 'mv-erguer/v1', '/ajustar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_ajustar' ) );
+	register_rest_route( 'mv-erguer/v1', '/artistas', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'mve_lista_artistas' ) );
 } );
+
+/** Perfis de artista publicados (o que a página Artistas já mostra): para a pessoa escolher o próprio nome. */
+function mve_lista_artistas() {
+	$o = array();
+	foreach ( get_posts( array( 'post_type' => 'mv3_artist', 'post_status' => 'publish', 'numberposts' => -1, 'orderby' => 'title', 'order' => 'ASC' ) ) as $a ) {
+		$o[] = array( 'id' => $a->ID, 'nome' => $a->post_title, 'cidade' => (string) get_post_meta( $a->ID, '_mv3_city', true ), 'foto' => (string) get_the_post_thumbnail_url( $a->ID, 'thumbnail' ) );
+	}
+	return $o;
+}
 
 function mve_enviar( WP_REST_Request $r ) {
 	// robôs preenchem o campo escondido: responde "ok" e não grava nada
 	if ( '' !== trim( (string) $r->get_param( 'aSite' ) ) ) { return array( 'ok' => true ); }
-	$c = mve_campos( $r );
+	$art_id = (int) $r->get_param( 'artistaId' ); // "Já tenho perfil": o perfil escolhido na lista
+	$c = mve_campos( $r, false, $art_id > 0 );
 	if ( $c instanceof WP_REST_Response ) { return $c; }
+	if ( $art_id ) {
+		$ap = get_post( $art_id );
+		if ( ! $ap || 'mv3_artist' !== $ap->post_type || 'publish' !== $ap->post_status ) { return mve_erro( 'Não achamos esse perfil de artista. Escolha o seu nome de novo na lista.' ); }
+	}
 
 	$fotos = array_slice( mve_arquivos( 'fotos' ), 0, MVE_MAX_FOTOS );
 	foreach ( $fotos as $f ) { if ( ! mve_imagem_ok( $f ) ) { return mve_erro( 'Uma das fotos não pôde ser lida. Use JPG ou PNG.' ); } }
 	if ( ! $c['yt'] && ! $fotos ) { return mve_erro( 'Coloque um vídeo do YouTube ou pelo menos uma foto.' ); }
-	$perfil = mve_arquivos( 'aFoto' );
-	if ( ! $perfil || ! mve_imagem_ok( $perfil[0] ) ) { return mve_erro( 'Falta a sua foto de perfil (JPG ou PNG).' ); }
+	$perfil = $art_id ? array() : mve_arquivos( 'aFoto' );
+	if ( ! $art_id && ( ! $perfil || ! mve_imagem_ok( $perfil[0] ) ) ) { return mve_erro( 'Falta a sua foto de perfil (JPG ou PNG).' ); }
 	$lim = mve_limite();
 	if ( $lim ) { return $lim; }
 
 	$criados  = array();
 	$desfazer = function () use ( &$criados ) { foreach ( array_reverse( $criados ) as $id ) { wp_delete_post( $id, true ); } };
 
+	if ( $art_id ) {
+		// perfil escolhido na lista: publica direto se o e-mail confere com o guardado nesse perfil; senão a equipe confirma
+		$artista  = $art_id;
+		$guardado = strtolower( (string) get_post_meta( $artista, '_mve_email', true ) );
+		$modo     = ( $guardado && hash_equals( $guardado, $c['email'] ) ) ? 'existente' : 'confirmar';
+	} else {
 	// artista (reaproveita o perfil criado antes com o mesmo e-mail)
 	$exist = get_posts( array( 'post_type' => 'mv3_artist', 'post_status' => array( 'publish', 'draft' ), 'numberposts' => 1, 'fields' => 'ids',
 		'meta_query' => array( array( 'key' => '_mve_email', 'value' => $c['email'] ), array( 'key' => '_mve_comunidade', 'value' => '1' ) ) ) );
@@ -197,15 +220,20 @@ function mve_enviar( WP_REST_Request $r ) {
 		$criados[] = $foto;
 		set_post_thumbnail( $artista, $foto );
 	}
+	$modo = $novo_artista ? 'novo' : 'mesmo_email';
+	}
 
-	// monumento
-	$mon = wp_insert_post( array( 'post_type' => 'mv3_monument', 'post_status' => 'publish', 'post_title' => $c['nome'], 'post_content' => $c['hist'] ), true );
+	// monumento (aguarda a equipe só quando o perfil escolhido não pôde ser conferido pelo e-mail)
+	$mon = wp_insert_post( array( 'post_type' => 'mv3_monument', 'post_status' => ( 'confirmar' === $modo ? 'pending' : 'publish' ), 'post_title' => $c['nome'], 'post_content' => $c['hist'] ), true );
 	if ( is_wp_error( $mon ) ) { $desfazer(); return mve_erro( 'Não foi possível criar o monumento agora. Tente de novo.', 500 ); }
 	$criados[] = $mon;
 	mve_gravar_monumento( $mon, $c );
 	update_post_meta( $mon, '_mv3_artist_id', $artista );
 	update_post_meta( $mon, '_mve_comunidade', '1' );
 	update_post_meta( $mon, '_mve_enviado_em', current_time( 'mysql' ) );
+	update_post_meta( $mon, '_mve_email_envio', $c['email'] ); // privado: contato para ajustes
+	if ( $art_id ) { update_post_meta( $mon, '_mve_perfil_existente', '1' ); }
+	if ( 'confirmar' === $modo ) { update_post_meta( $mon, '_mve_aguarda_vinculo', '1' ); }
 
 	$ids = array();
 	foreach ( $fotos as $i => $f ) {
@@ -216,9 +244,9 @@ function mve_enviar( WP_REST_Request $r ) {
 	}
 	mve_gravar_fotos( $mon, $ids );
 
-	$enviado = mve_email_inscrito( $mon, $novo_artista );
+	$enviado = mve_email_inscrito( $mon, $modo );
 	update_post_meta( $mon, '_mve_email_enviado', $enviado ? '1' : '0' );
-	return array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ) );
+	return array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ), 'aguarda' => ( 'confirmar' === $modo ) );
 }
 
 function mve_gravar_monumento( $mon, $c ) {
@@ -264,7 +292,7 @@ function mve_editar( WP_REST_Request $r ) {
 		'ok' => true, 'ajuste' => (string) get_post_meta( $mon, '_mve_ajuste_msg', true ), 'enviado' => is_array( $p ),
 		'nome' => $v['nome'], 'historia' => $v['hist'], 'ano' => $v['ano'], 'bairro' => $v['bairro'], 'yt' => $v['yt'],
 		'lat' => $v['lat'], 'lng' => $v['lng'], 'raio' => $v['raio'], 'ficha' => $ficha, 'fotos' => $fotos, 'fotos_credito' => $v['fcred'],
-		'artista' => array( 'nome' => $v['anome'], 'cidade' => $v['acid'], 'bio' => $v['abio'], 'credito' => $v['acred'],
+		'artista' => array( 'nome' => $v['anome'], 'cidade' => $v['acid'], 'bio' => $v['abio'], 'credito' => $v['acred'], 'existente' => ( '1' === get_post_meta( $mon, '_mve_perfil_existente', true ) ),
 			'foto' => $v['retrato'] ? wp_get_attachment_image_url( $v['retrato'], 'medium' ) : '' ),
 	);
 }
@@ -273,8 +301,10 @@ function mve_editar( WP_REST_Request $r ) {
 function mve_ajustar( WP_REST_Request $r ) {
 	$mon = (int) $r->get_param( 'id' );
 	if ( ! mve_link_edicao_ok( $mon, $r->get_param( 'k' ) ) ) { return mve_erro( 'Este link de ajuste não vale mais. Responda o e-mail da equipe para pedir um novo.', 403 ); }
-	$c = mve_campos( $r, true );
+	$travado = ( '1' === get_post_meta( $mon, '_mve_perfil_existente', true ) ); // perfil escolhido da lista: não se edita por aqui
+	$c = mve_campos( $r, true, $travado );
 	if ( $c instanceof WP_REST_Response ) { return $c; }
+	if ( $travado ) { $at = mve_atual( $mon ); foreach ( array( 'anome', 'acid', 'abio', 'acred' ) as $k ) { $c[ $k ] = $at[ $k ]; } }
 	$art   = mve_artista_de( $mon );
 	$antes = get_post_meta( $mon, '_mve_pendente', true );
 	// fotos que continuam: só as que já pertencem a este monumento
@@ -284,7 +314,7 @@ function mve_ajustar( WP_REST_Request $r ) {
 	$novas  = array_slice( mve_arquivos( 'fotos' ), 0, max( 0, MVE_MAX_FOTOS - count( $manter ) ) );
 	foreach ( $novas as $f ) { if ( ! mve_imagem_ok( $f ) ) { return mve_erro( 'Uma das fotos não pôde ser lida. Use JPG ou PNG.' ); } }
 	if ( ! $c['yt'] && ! $manter && ! $novas ) { return mve_erro( 'Coloque um vídeo do YouTube ou pelo menos uma foto.' ); }
-	$perfil = mve_arquivos( 'aFoto' );
+	$perfil = $travado ? array() : mve_arquivos( 'aFoto' );
 	if ( $perfil && ! mve_imagem_ok( $perfil[0] ) ) { return mve_erro( 'A sua foto de perfil não pôde ser lida. Use JPG ou PNG.' ); }
 	$lim = mve_limite( 'mve_aj_' . $mon, 10 ); // ajustes têm limite próprio, por monumento
 	if ( $lim ) { return $lim; }
@@ -327,7 +357,7 @@ function mve_aplicar_pendente( $mon ) {
 		mve_gravar_monumento( $mon, $p );
 		mve_gravar_fotos( $mon, $p['fotos'] );
 		foreach ( array_diff( $velhas, array_map( 'intval', $p['fotos'] ) ) as $x ) { wp_delete_attachment( $x, true ); }
-		if ( $art && '1' === get_post_meta( $art, '_mve_comunidade', true ) ) {
+		if ( $art && '1' === get_post_meta( $art, '_mve_comunidade', true ) && '1' !== get_post_meta( $mon, '_mve_perfil_existente', true ) ) {
 			wp_update_post( array( 'ID' => $art, 'post_title' => $p['anome'], 'post_content' => $p['abio'] ) );
 			update_post_meta( $art, '_mv3_city', $p['acid'] );
 			update_post_meta( $art, '_mv3_photo_credit', $p['acred'] );
@@ -395,18 +425,26 @@ function mve_ficha_html( $raw ) {
 }
 
 /** Aviso para a equipe: monumento novo. */
-function mve_email_inscrito( $mon, $novo_artista ) {
+function mve_email_inscrito( $mon, $modo ) {
 	$v = mve_atual( $mon ); $art = mve_artista_de( $mon ); $email = mve_email_de( $mon ); $link = get_permalink( $mon ); $e = 'esc_html';
 	$mapa = 'https://www.openstreetmap.org/?mlat=' . rawurlencode( $v['lat'] ) . '&mlon=' . rawurlencode( $v['lng'] ) . '#map=17/' . rawurlencode( $v['lat'] ) . '/' . rawurlencode( $v['lng'] );
 	$retrato = $v['retrato'] ? wp_get_attachment_image_url( $v['retrato'], 'thumbnail' ) : '';
 	$h  = '<p style="margin:0 0 16px;color:#7a726a;font-size:14px">por ' . $e( $v['anome'] ) . ' · ' . $e( $v['bairro'] ) . ( $v['ano'] ? ' · ' . $e( $v['ano'] ) : '' ) . '</p>';
-	$h .= mve_btn( 'Abrir o monumento para checar', $link );
+	$aguarda = ( 'confirmar' === $modo );
+	if ( $aguarda ) { $link = get_preview_post_link( $mon ); }
+	$h .= mve_btn( $aguarda ? 'Ver como vai ficar' : 'Abrir o monumento para checar', $link );
 	$h .= '<p style="margin:2px 0 18px;font-size:12px;color:#7a726a;word-break:break-all">Link: <a href="' . esc_url( $link ) . '" style="color:#A35A27">' . $e( $link ) . '</a></p>';
-	$h .= mve_caixa( 'Ele <b>já está no ar</b>: no mapa, em Monumentos e em Artistas. Se estiver tudo certo, não precisa fazer nada. Se algo precisar mudar, use <b>Pedir ajuste</b>: a pessoa recebe a sua mensagem e um link para editar, e os ajustes só entram no ar quando você der o ok final. Para conversar com ela, é só responder este e-mail.' );
-	$h .= mve_btn( 'Pedir ajuste à pessoa', mve_link_moderar( $mon, 'ajuste' ) ) . mve_btn( 'Tirar do ar', mve_link_moderar( $mon, 'tirar' ), false ) . mve_btn( 'Editar no WordPress', admin_url( 'post.php?post=' . $mon . '&action=edit' ), false );
+	if ( $aguarda ) {
+		$h .= mve_caixa( 'Ainda <b>não está no ar</b>. A pessoa escolheu na lista o perfil que já existe de <b>' . $e( $v['anome'] ) . '</b>, mas o e-mail dela (' . $e( $email ) . ') não confere com o guardado nesse perfil (ou o perfil ainda não tem e-mail guardado). Confira se é mesmo a artista: se for, confirme e o monumento entra no ar ligado ao perfil; da próxima vez, com o mesmo e-mail, entra direto. Na dúvida, responda este e-mail para falar com a pessoa.' );
+		$h .= mve_btn( 'Confirmar e publicar', mve_link_moderar( $mon, 'vincular' ) ) . mve_btn( 'Pedir ajuste à pessoa', mve_link_moderar( $mon, 'ajuste' ), false ) . mve_btn( 'Não é a artista: tirar', mve_link_moderar( $mon, 'tirar' ), false );
+	} else {
+		$h .= mve_caixa( 'Ele <b>já está no ar</b>: no mapa, em Monumentos e em Artistas. Se estiver tudo certo, não precisa fazer nada. Se algo precisar mudar, use <b>Pedir ajuste</b>: a pessoa recebe a sua mensagem e um link para editar, e os ajustes só entram no ar quando você der o ok final. Para conversar com ela, é só responder este e-mail.' );
+		$h .= mve_btn( 'Pedir ajuste à pessoa', mve_link_moderar( $mon, 'ajuste' ) ) . mve_btn( 'Tirar do ar', mve_link_moderar( $mon, 'tirar' ), false ) . mve_btn( 'Editar no WordPress', admin_url( 'post.php?post=' . $mon . '&action=edit' ), false );
+	}
 	$h .= '<table style="width:100%;border-collapse:collapse;margin-top:14px;border-top:1px solid #eee7dd">';
 	$h .= mve_lin( 'Monumento', '<a href="' . esc_url( $link ) . '" style="color:#A35A27">' . $e( $v['nome'] ) . '</a>' );
-	$h .= mve_lin( 'Artista', '<a href="' . esc_url( get_permalink( $art ) ) . '" style="color:#A35A27">' . $e( $v['anome'] ) . '</a> <span style="color:#7a726a">(' . ( $novo_artista ? 'perfil novo' : 'perfil já existente' ) . ')</span>' );
+	$h .= mve_lin( 'Artista', '<a href="' . esc_url( get_permalink( $art ) ) . '" style="color:#A35A27">' . $e( $v['anome'] ) . '</a> <span style="color:#7a726a">(' . $e( array( 'novo' => 'perfil novo', 'mesmo_email' => 'perfil já existente, mesmo e-mail', 'existente' => 'escolheu o próprio perfil na lista; o e-mail confere', 'confirmar' => 'escolheu na lista um perfil que já existe: confirmar' )[ $modo ] ) . ')</span>'
+		. ( 'novo' === $modo && get_posts( array( 'post_type' => 'mv3_artist', 'post_status' => 'publish', 'title' => $v['anome'], 'post__not_in' => array( $art ), 'numberposts' => 1, 'fields' => 'ids' ) ) ? '<br><span style="color:#A35A27">Atenção: já existia um perfil com este mesmo nome em Artistas.</span>' : '' ) );
 	$h .= mve_lin( 'E-mail do artista', '<a href="mailto:' . esc_attr( $email ) . '" style="color:#A35A27">' . $e( $email ) . '</a>' );
 	$h .= mve_lin( 'Território', '<a href="' . esc_url( $mapa ) . '" style="color:#A35A27">' . $e( $v['lat'] . ', ' . $v['lng'] ) . '</a> · raio de ' . $e( mve_raio_txt( $v['raio'] ) ) );
 	$h .= mve_lin( 'Vídeo', $v['yt'] ? '<a href="' . esc_url( 'https://www.youtube.com/watch?v=' . $v['yt'] ) . '" style="color:#A35A27">youtube.com/watch?v=' . $e( $v['yt'] ) . '</a>' : '—' );
@@ -417,7 +455,7 @@ function mve_email_inscrito( $mon, $novo_artista ) {
 	$h .= mve_lin( 'Foto do perfil', ( $retrato ? '<img src="' . esc_url( $retrato ) . '" width="72" height="72" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover"><br>' : '' ) . 'autoria: ' . $e( $v['acred'] ? $v['acred'] : 'do próprio artista' ) );
 	$h .= '</table>';
 	$nome_resp = str_replace( array( "\r", "\n", '<', '>', ',' ), '', $v['anome'] );
-	return mve_mandar( MVE_PARA, 'Monumento inscrito: ' . $v['nome'], mve_email_html( 'Monumento inscrito', $v['nome'], $h ), $nome_resp . ' <' . $email . '>' );
+	return mve_mandar( MVE_PARA, ( $aguarda ? 'Monumento inscrito (confirmar artista): ' : 'Monumento inscrito: ' ) . $v['nome'], mve_email_html( 'Monumento inscrito', $v['nome'], $h ), $nome_resp . ' <' . $email . '>' );
 }
 
 /** Para a pessoa: o que precisa ajustar + link para editar. */
@@ -470,7 +508,7 @@ function mve_email_ajustado( $mon ) {
 /** Para a pessoa: está no ar. */
 function mve_email_no_ar( $mon ) {
 	$v = mve_atual( $mon ); $e = 'esc_html'; $primeiro = trim( strtok( $v['anome'], ' ' ) );
-	$h  = '<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#141210">Olá, ' . $e( $primeiro ) . '! A equipe conferiu os ajustes e o seu monumento <b>' . $e( $v['nome'] ) . '</b> está no ar, no mapa dos Monumentos Virtuais.</p>';
+	$h  = '<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#141210">Olá, ' . $e( $primeiro ) . '! A equipe conferiu e o seu monumento <b>' . $e( $v['nome'] ) . '</b> está no ar, no mapa dos Monumentos Virtuais.</p>';
 	$h .= mve_btn( 'Ver meu monumento', get_permalink( $mon ) );
 	$h .= '<p style="margin:10px 0 0;font-size:12px;color:#7a726a">Obrigado por erguer este monumento.</p>';
 	return mve_mandar( mve_email_de( $mon ), 'Seu monumento está no ar: ' . $v['nome'], mve_email_html( 'Está no ar', '', $h ), 'Monumentos Virtuais <' . MVE_PARA . '>' );
@@ -485,7 +523,7 @@ add_action( 'template_redirect', function () {
 	$id   = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 	$t    = isset( $_GET['t'] ) ? sanitize_text_field( wp_unslash( $_GET['t'] ) ) : '';
 	$post = get_post( $id );
-	if ( ! in_array( $acao, array( 'ok', 'ajuste', 'final', 'tirar', 'voltar' ), true ) || ! $post || 'mv3_monument' !== $post->post_type
+	if ( ! in_array( $acao, array( 'ok', 'ajuste', 'final', 'tirar', 'voltar', 'vincular' ), true ) || ! $post || 'mv3_monument' !== $post->post_type
 		|| '1' !== get_post_meta( $id, '_mve_comunidade', true ) || ! hash_equals( mve_token( $id, $acao ), $t ) ) {
 		mve_pagina( 'Link inválido', '<p>Este link não vale mais ou foi copiado pela metade.</p>' );
 	}
@@ -514,6 +552,18 @@ add_action( 'template_redirect', function () {
 		mve_pagina( $ok ? 'Pedido enviado' : 'Pedido salvo, mas o e-mail falhou', '<p>' . ( $ok ? 'A mensagem foi para ' . esc_html( $email ) . '.' : 'O servidor não conseguiu mandar o e-mail para ' . esc_html( $email ) . '.' ) . ( $fora ? ' ' . $nome . ' está fora do ar até você dar o ok final.' : ' ' . $nome . ' continua no ar.' ) . '</p>'
 			. '<p style="margin-top:14px;font-size:14px;opacity:.85">Se preferir mandar também por WhatsApp, este é o link de edição da pessoa (vale por ' . MVE_LINK_DIAS . ' dias):</p>'
 			. '<p style="word-break:break-all;font-size:13px;background:#141210;border:1px solid #3a342e;border-radius:8px;padding:10px">' . esc_html( $link ) . '</p>' . $ver );
+	}
+
+	if ( 'vincular' === $acao ) {
+		$art = mve_artista_de( $id );
+		if ( ! $post_ok ) {
+			mve_pagina( 'Confirmar e publicar?', '<p style="margin:0 0 6px">' . $nome . '</p><p>O monumento entra no ar ligado ao perfil de <b>' . esc_html( get_the_title( $art ) ) . '</b>, e o e-mail ' . esc_html( $email ) . ' passa a valer para esse perfil: os próximos envios com ele entram direto.</p><form method="post">' . $btn( 'Confirmar e publicar' ) . '</form>' );
+		}
+		wp_update_post( array( 'ID' => $id, 'post_status' => 'publish' ) );
+		if ( $art && ! get_post_meta( $art, '_mve_email', true ) ) { update_post_meta( $art, '_mve_email', strtolower( $email ) ); }
+		delete_post_meta( $id, '_mve_aguarda_vinculo' );
+		mve_email_no_ar( $id );
+		mve_pagina( 'Publicado', '<p>' . $nome . ' está no ar, na lista de obras de ' . esc_html( get_the_title( $art ) ) . '. Avisamos ' . esc_html( $email ) . '.</p>' . $ver );
 	}
 
 	if ( 'final' === $acao ) {

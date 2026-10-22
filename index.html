@@ -237,7 +237,7 @@
   .fld .lbl{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-family:var(--mono);margin-bottom:5px}
   .fld label em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--faint)}
   .req{font-style:normal;color:var(--c-mon)}
-  .fld input[type=url],.fld input[type=email]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--fg);font-family:var(--sans);font-size:14px}
+  .fld input[type=url],.fld input[type=email],.fld input[type=search]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--fg);font-family:var(--sans);font-size:14px}
   .fld input::placeholder,.fld textarea::placeholder{color:var(--faint)}
   .fld .bad{border-color:#B5543A!important}
   .err{margin:5px 0 0;font-size:11.5px;color:#E5866B} .err:empty{display:none}
@@ -304,6 +304,13 @@
   .pficha .mv3-ficha td{padding:8px 0;color:#f2ede6;vertical-align:top}
   .pficha .vazio{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:14px 0 10px}
   .ajuste{padding:12px 13px;border-radius:11px;background:#1E140D;border:1px solid #7A4520} .ajuste b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--c-mon);margin-bottom:5px} .ajuste p{margin:0;font-size:13px;line-height:1.5;color:var(--fg);white-space:pre-line}
+  .aesc{display:flex;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--c-mon);border-radius:12px;background:#1E140D}
+  .aesc .ph{width:48px;height:48px;border-radius:50%;overflow:hidden;flex:none;background:#2A1A10;display:grid;place-items:center;color:var(--c-mon);font-weight:700}
+  .aesc .ph img{width:100%;height:100%;object-fit:cover} .aesc b{display:block;font-size:14px} .aesc span{font-size:12px;color:var(--muted)}
+  .aesc button{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:12px;padding:6px 10px;cursor:pointer}
+  .tres button.art{display:flex;gap:10px;align-items:center} .tres button.art i{width:30px;height:30px;border-radius:50%;flex:none;background:#2A1A10 center/cover no-repeat;font-style:normal}
+  .aviso{margin:6px 0 0;font-size:12px;line-height:1.45;color:#E3C46F} .aviso button{background:none;border:0;color:var(--c-mon);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+  .hint2{display:block;margin-top:5px;font-size:11.5px;color:var(--muted);line-height:1.4}
   .okp{align-items:center;text-align:center;padding:18px 4px 8px} .okp .okic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#2A1A10;color:var(--c-mon);font-size:26px;font-weight:700;border:1px solid #7A4520}
   .okp h3{margin:4px 0 0;font-size:18px} .okp p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
   .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
@@ -421,13 +428,24 @@
       </section>
       <!-- 4. seu perfil -->
       <section data-step="4" hidden>
+        <div class="tmode" role="radiogroup" aria-label="Perfil de artista" id="aModo">
+          <button type="button" role="radio" id="aNovo" aria-checked="true"><b>Primeira vez aqui</b><span>criar meu perfil de artista</span></button>
+          <button type="button" role="radio" id="aTenho" aria-checked="false"><b>Já tenho perfil</b><span>usar o meu perfil da plataforma</span></button>
+        </div>
+        <div id="aExiste" hidden>
+          <div class="fld"><label for="aBusca">Seu nome como está na plataforma <i class="req">*</i></label><input type="search" id="aBusca" maxlength="80" autocomplete="off" placeholder="Comece a digitar o seu nome"><div class="tres" id="aRes"></div><p class="err" data-err="aBusca"></p></div>
+          <div class="aesc" id="aEsc" hidden></div>
+          <p class="hint">Escolha o seu nome na lista, do jeito que já está em Artistas. Não achou? Toque em “Primeira vez aqui”.</p>
+        </div>
+        <div id="aNovoBox">
         <div class="ava"><label class="ph" for="aFoto" id="aFotoPh"><span>+ foto<br>sua</span></label><input type="file" id="aFoto" accept="image/*" hidden>
           <div class="fld" style="flex:1;min-width:0"><label for="aCred">Autoria da foto</label><input type="text" id="aCred" maxlength="80" placeholder="ex.: Maria Silva (deixe vazio se for sua)"></div></div>
         <p class="err" data-err="aFoto"></p>
-        <div class="fld"><label for="aNome">Seu nome (como artista) <i class="req">*</i></label><input type="text" id="aNome" maxlength="80" autocomplete="name"><p class="err" data-err="aNome"></p></div>
+        <div class="fld"><label for="aNome">Seu nome (como artista) <i class="req">*</i></label><input type="text" id="aNome" maxlength="80" autocomplete="name"><p class="err" data-err="aNome"></p><p class="aviso" id="aHomonimo" hidden></p></div>
         <div class="fld"><label for="aCidade">Cidade / UF</label><input type="text" id="aCidade" maxlength="60" placeholder="ex.: Olinda, PE"></div>
         <div class="fld"><label for="aBio">Minibio <i class="req">*</i></label><textarea id="aBio" maxlength="400" placeholder="Quem é você, o que você faz, de onde você vem."></textarea><small class="cnt" data-cnt="aBio">0 / 400</small><p class="err" data-err="aBio"></p></div>
-        <div class="fld" id="aEmailBox"><label for="aEmail">E-mail <i class="req">*</i></label><input type="email" id="aEmail" maxlength="120" autocomplete="email" placeholder="não aparece no site"><p class="err" data-err="aEmail"></p></div>
+        </div>
+        <div class="fld" id="aEmailBox"><label for="aEmail">E-mail <i class="req">*</i></label><input type="email" id="aEmail" maxlength="120" autocomplete="email" placeholder="não aparece no site"><small class="hint2" id="aEmailHint" hidden>Use o mesmo e-mail de quando você enviou o seu primeiro monumento, se já enviou algum.</small><p class="err" data-err="aEmail"></p></div>
         <input type="text" id="aSite" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
         <label class="chk"><input type="checkbox" id="aOk"><span>As fotos e o vídeo são meus ou tenho autorização para publicar. Concordo que a equipe Monumentos Virtuais confira o conteúdo.</span></label><p class="err" data-err="aOk"></p>
       </section>
@@ -1225,8 +1243,52 @@
     if(val('mHist').length<20)ok=setErr('mHist','Conte um pouco mais da história (pelo menos uma frase).')&&ok;else setErr('mHist');
     return ok;
   }
+  // ---- perfil: novo ou já existente na plataforma
+  W.perfil='novo';W.artista=null;W.artistas=null;
+  const semAcento=t=>(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  function carregarArtistas(){
+    if(W.artistas)return Promise.resolve(W.artistas);
+    const base=API||(SITE+'/wp-json/mv-erguer/v1/');
+    return fetch(base+'artistas',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(j=>(W.artistas=Array.isArray(j)?j:[])).catch(()=>(W.artistas=[]));
+  }
+  function setPerfil(m){
+    W.perfil=m;$('aNovo').setAttribute('aria-checked',m==='novo');$('aTenho').setAttribute('aria-checked',m==='existe');
+    $('aExiste').hidden=m!=='existe';$('aNovoBox').hidden=m==='existe';$('aEmailHint').hidden=m!=='existe';
+    ['aBusca','aFoto','aNome','aBio'].forEach(k=>setErr(k));
+    if(m==='existe'){carregarArtistas();if(!W.artista)setTimeout(()=>$('aBusca').focus(),50);}
+  }
+  $('aNovo').onclick=()=>setPerfil('novo');$('aTenho').onclick=()=>setPerfil('existe');
+  function escolherArtista(a){
+    W.artista=a;$('aRes').innerHTML='';$('aBusca').value='';$('aBusca').parentNode.hidden=!!a;$('aEsc').hidden=!a;setErr('aBusca');
+    if(a)$('aEsc').innerHTML=`<div class="ph">${a.foto?`<img src="${esc(a.foto)}" alt="">`:esc((a.nome[0]||'?').toUpperCase())}</div><div style="min-width:0"><b>${esc(a.nome)}</b>${a.cidade?`<span>${esc(a.cidade)}</span>`:''}</div><button type="button" id="aTrocar">trocar</button>`;
+    if(a)$('aTrocar').onclick=()=>{escolherArtista(null);$('aBusca').focus();};
+  }
+  $('aBusca').addEventListener('input',async()=>{
+    const q=semAcento($('aBusca').value);const box=$('aRes');
+    if(q.length<2){box.innerHTML='';return;}
+    const lista=await carregarArtistas();
+    if(!lista.length){box.innerHTML='<p>A lista de artistas não carregou. Confira a internet e tente de novo.</p>';return;}
+    const ach=lista.filter(a=>semAcento(a.nome).includes(q)).slice(0,6);
+    box.innerHTML=ach.length?ach.map((a,i)=>`<button type="button" class="art" data-i="${i}"><i style="${a.foto?`background-image:url('${esc(a.foto)}')`:''}"></i><span>${esc(a.nome)}<small>${esc(a.cidade||'')}</small></span></button>`).join(''):'<p>Nenhum perfil com esse nome. Confira a grafia ou escolha “Primeira vez aqui”.</p>';
+    box.querySelectorAll('button.art').forEach(b=>b.onclick=()=>escolherArtista(ach[+b.dataset.i]));
+  });
+  // nome igual a um perfil que já existe: sugere usar o perfil existente
+  $('aNome').addEventListener('blur',async()=>{
+    const n=semAcento(val('aNome'));const av=$('aHomonimo');av.hidden=true;if(n.length<3||W.edit)return;
+    const lista=await carregarArtistas();const a=lista.find(x=>semAcento(x.nome)===n);
+    if(!a)return;
+    av.innerHTML=`Já existe o perfil <b>${esc(a.nome)}</b> na plataforma. É você? <button type="button">Usar o perfil existente</button>`;av.hidden=false;
+    av.querySelector('button').onclick=()=>{setPerfil('existe');escolherArtista(a);av.hidden=true;};
+  });
   function check2(){
     let ok=true;
+    if(W.perfil==='existe'&&!W.edit){
+      if(!W.artista)ok=setErr('aBusca','Escolha o seu nome na lista.')&&ok;else setErr('aBusca');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val('aEmail')))ok=setErr('aEmail','Confira o e-mail.')&&ok;else setErr('aEmail');
+      if(!$('aOk').checked)ok=setErr('aOk','Marque para confirmar.')&&ok;else setErr('aOk');
+      return ok;
+    }
+    if(W.edit&&W.perfil==='existe'){if(!$('aOk').checked)ok=setErr('aOk','Marque para confirmar.')&&ok;else setErr('aOk');return ok;}
     if(!W.aFoto)ok=setErr('aFoto','Coloque uma foto sua para o perfil.')&&ok;
     if(!val('aNome'))ok=setErr('aNome','Escreva o seu nome.')&&ok;else setErr('aNome');
     if(val('aBio').length<20)ok=setErr('aBio','Escreva uma minibio (pelo menos uma frase).')&&ok;else setErr('aBio');
@@ -1238,7 +1300,8 @@
   $('aOk').addEventListener('change',()=>{if($('aOk').checked)setErr('aOk');});
   function draft(lat,lng){
     const yt=ytId($('mYt').value)||null;
-    return {layer:'mon',name:val('mName'),artist:val('aNome'),year:val('mYear')||'',bairro:val('mBairro'),origin:'usuario',lat,lng,raio:raio(),
+    const artNome=W.perfil==='existe'&&W.artista?W.artista.nome:val('aNome');
+    return {layer:'mon',name:val('mName'),artist:artNome,year:val('mYear')||'',bairro:val('mBairro'),origin:'usuario',lat,lng,raio:raio(),
       hist:val('mHist'),fotos:W.fotos.map(f=>f.url),fotoCred:val('mCred'),ficha:ficha(),
       _detail:{description:val('mHist'),video:yt?{provider:'youtube',id:yt}:null,ficha_tecnica:ficha()}};
   }
@@ -1251,6 +1314,9 @@
     const f=d.ficha;
     $('pvFicha').innerHTML=`<p class="pt">${esc(d.name)}</p><p class="pm">${esc(d.bairro)}${d.year?' · '+esc(d.year):''}</p>`+(d.fotos.length?'<div class="pfotos">'+d.fotos.slice(0,4).map(u=>`<img src="${esc(u)}" alt="">`).join('')+'</div>'+(d.fotoCred?`<p class="fcred">fotos: ${esc(d.fotoCred)}</p>`:''):'')+`<p class="ps">${esc(d.hist)}</p>`+
       `<div class="mv3-ficha"><h3>Ficha Técnica</h3><table><tbody>${f.map(x=>`<tr><td class="mv3-ficha__role">${esc(x.role)}</td><td>${esc(x.people.join(', '))}</td></tr>`).join('')}</tbody></table></div>`;
+    if(W.perfil==='existe'&&W.artista){const a=W.artista;
+      $('pvArt').innerHTML=`<div class="ph">${a.foto?`<img src="${esc(a.foto)}" alt="">`:esc((a.nome[0]||'?').toUpperCase())}</div><div style="min-width:0"><b>${esc(a.nome)}</b>${a.cidade?`<span class="loc">${esc(a.cidade)}</span>`:''}<p>O seu perfil continua como está. Este monumento entra na lista das suas obras.</p><div class="obras">+ ${esc(val('mName'))}</div></div>`;
+      return;}
     const ini=esc((val('aNome')[0]||'?').toUpperCase());
     $('pvArt').innerHTML=`<div class="ph">${W.aFoto?`<img src="${W.aFoto.url}" alt="">`:ini}</div><div style="min-width:0">
       <b>${esc(val('aNome'))}</b>${val('aCidade')?`<span class="loc">${esc(val('aCidade'))}</span>`:''}
@@ -1262,22 +1328,26 @@
     const d=draft(lat,lng);
     if(ENVIO){
       const fd=new FormData();
-      ['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred'].forEach(k=>fd.append(k,val(k)));
+      const existe=W.perfil==='existe'&&W.artista;
+      (existe?['mYt','mName','mYear','mBairro','mHist','mCred','aEmail']:['mYt','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred']).forEach(k=>fd.append(k,val(k)));
+      if(existe)fd.append('artistaId',W.artista.id);
       fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
-      W.fotos.forEach((f,i)=>fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg'));fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
+      W.fotos.forEach((f,i)=>fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg'));if(!existe)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
       $('wNext').disabled=true;$('wNext').textContent='Enviando…';
       fd.append('aSite',val('aSite'));
       let j=null;
-      try{const r=await fetch(ENVIO,{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;if(j.link)d.link=j.link;}
+      try{const r=await fetch(ENVIO,{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;if(j.link)d.link=j.link;W.aguarda=!!j.aguarda;}
       catch(e){$('wNext').disabled=false;$('wNext').textContent='Erguer monumento';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
       $('wNext').disabled=false;
-      $('okP').textContent='Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.';
+      $('okP').textContent=W.aguarda?'Recebemos! Como ele foi ligado a um perfil que já existe na plataforma, a equipe confirma que é você e publica. Você recebe um e-mail quando estiver no ar.'
+        :(existe?'Ele já está no mapa dos monumentos e entrou na lista das suas obras em Artistas. Se precisarmos de algum ajuste, escrevemos para você.'
+        :'Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.');
     } else {
       $('okP').textContent='Prévia: nesta versão de teste o monumento aparece só no seu aparelho. No site, ele vai direto para o mapa dos monumentos e o seu perfil vai para Artistas.';
     }
-    if(ENVIO){d.sent=true;register(d);}else{register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'&&!x.sent));}
+    if(ENVIO){d.sent=true;if(!W.aguarda)register(d);}else{register(d);persist('mv_mon',store.mon.filter(x=>x.origin==='usuario'&&!x.sent));}
     refresh();W.last=d;
-    $('okT').textContent='“'+d.name+'” foi erguido';go('ok');
+    $('okT').textContent=W.aguarda?'“'+d.name+'” foi enviado':'“'+d.name+'” foi erguido';if(W.aguarda)W.last=null;go('ok');
   }
   // ---- ajuste pedido pela equipe: o mesmo formulário, já preenchido, aberto pelo link do e-mail
   const API=ENVIO?ENVIO.replace(/enviar$/,''):null;
@@ -1311,7 +1381,9 @@
     $('mBairro').value=j.bairro||'';W.bairroManual=true;W.pos={lat:+j.lat,lng:+j.lng};W.moved=true;
     const ri=RAIOS.indexOf(+j.raio);$('tRaio').value=ri<0?3:ri;$('tRaioTxt').textContent=fmtM(raio());
     $('fRows').innerHTML='';(j.ficha||[]).forEach(f=>fRow(f.role,(f.people||[]).join(', ')));if(!$('fRows').children.length)fRow();
-    const a=j.artista||{};$('aNome').value=a.nome||'';$('aCidade').value=a.cidade||'';$('aBio').value=a.bio||'';$('aCred').value=a.credito||'';
+    const a=j.artista||{};
+    if(a.existente){setPerfil('existe');escolherArtista({id:0,nome:a.nome,cidade:a.cidade,foto:a.foto});$('aModo').hidden=true;const tb=$('aTrocar');if(tb)tb.remove();}
+    $('aNome').value=a.nome||'';$('aCidade').value=a.cidade||'';$('aBio').value=a.bio||'';$('aCred').value=a.credito||'';
     if(a.foto){W.aFoto={url:a.foto,existing:true};$('aFotoPh').innerHTML=`<img src="${esc(a.foto)}" alt="sua foto">`;$('aFotoPh').classList.add('has');}
     $('aEmailBox').hidden=true;
     $('pvNota').innerHTML='<b>Os ajustes vão para a equipe.</b> Assim que forem conferidos, entram no ar e você recebe um e-mail.';
