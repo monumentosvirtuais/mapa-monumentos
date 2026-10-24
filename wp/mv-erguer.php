@@ -158,13 +158,26 @@ function mve_atual( $mon ) {
 }
 
 /* ================================================================== */
-/* 1. Receber um monumento novo                                         */
+/* 1. Receber um monumento novo: primeiro GUARDA, depois publica        */
 /* ================================================================== */
+// Tudo o que chega fica guardado em "Inscrições do mapa" (WordPress) antes de qualquer outra coisa.
+// Se a publicação falhar, nada se perde: a equipe recebe um e-mail com "Restaurar e publicar".
+define( 'MVE_CAMPOS', array( 'mYt', 'mDrive', 'mName', 'mYear', 'mBairro', 'mHist', 'mCred', 'aNome', 'aCidade', 'aBio', 'aEmail', 'aCred', 'lat', 'lng', 'raio', 'ficha', 'artistaId' ) );
+
 add_action( 'rest_api_init', function () {
-	register_rest_route( 'mv-erguer/v1', '/enviar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_enviar' ) );
+	register_rest_route( 'mv-erguer/v1', '/enviar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_rota_enviar' ) );
 	register_rest_route( 'mv-erguer/v1', '/editar', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'mve_editar' ) );
-	register_rest_route( 'mv-erguer/v1', '/ajustar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_ajustar' ) );
+	register_rest_route( 'mv-erguer/v1', '/ajustar', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'mve_seguro_ajustar' ) );
 	register_rest_route( 'mv-erguer/v1', '/artistas', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'mve_lista_artistas' ) );
+} );
+
+add_action( 'init', function () {
+	register_post_type( 'mve_inscricao', array(
+		'labels'              => array( 'name' => 'Inscrições do mapa', 'singular_name' => 'Inscrição do mapa', 'menu_name' => 'Inscrições do mapa', 'edit_item' => 'Inscrição do mapa' ),
+		'public'              => false, 'show_ui' => true, 'show_in_menu' => true, 'menu_icon' => 'dashicons-archive', 'menu_position' => 26,
+		'supports'            => array( 'title' ), 'capability_type' => 'post', 'map_meta_cap' => true,
+		'exclude_from_search' => true, 'publicly_queryable' => false, 'show_in_rest' => false, 'rewrite' => false, 'query_var' => false,
+	) );
 } );
 
 /** Perfis de artista publicados (o que a página Artistas já mostra): para a pessoa escolher o próprio nome. */
@@ -176,83 +189,372 @@ function mve_lista_artistas() {
 	return $o;
 }
 
-function mve_enviar( WP_REST_Request $r ) {
+/** Registro de erros: wp-content/uploads/mv-erguer-log/erros.log (pasta protegida). */
+function mve_log( $msg ) {
+	$d   = wp_upload_dir();
+	$dir = trailingslashit( $d['basedir'] ) . 'mv-erguer-log';
+	if ( ! is_dir( $dir ) ) { wp_mkdir_p( $dir ); @file_put_contents( $dir . '/.htaccess', "Require all denied\n" ); @file_put_contents( $dir . '/index.html', '' ); }
+	@file_put_contents( $dir . '/erros.log', gmdate( 'Y-m-d H:i:s' ) . ' UTC  ' . $msg . "\n", FILE_APPEND );
+}
+/** Nunca devolve página de erro: qualquer falha vira uma mensagem em JSON e fica registrada. */
+function mve_seguro( $fn, WP_REST_Request $r ) {
+	try {
+		$res = call_user_func( $fn, $r );
+		if ( $res instanceof WP_REST_Response && $res->get_status() >= 400 ) {
+			$d = $res->get_data();
+			mve_log( $fn . ' recusou (' . $res->get_status() . '): ' . ( isset( $d['erro'] ) ? $d['erro'] : '' ) . ' · ip ' . mve_ip() );
+		}
+		return $res;
+	} catch ( Throwable $t ) {
+		mve_log( $fn . ' FALHOU: ' . $t->getMessage() . ' em ' . basename( $t->getFile() ) . ':' . $t->getLine() );
+		return mve_erro( 'Erro no servidor (' . $t->getMessage() . '). Tente de novo em instantes.', 500 );
+	}
+}
+function mve_seguro_ajustar( WP_REST_Request $r ) { return mve_seguro( 'mve_ajustar', $r ); }
+
+/* ---------- o registro (cofre) ---------- */
+function mve_pasta_inscricoes() {
+	$d   = wp_upload_dir();
+	$dir = trailingslashit( $d['basedir'] ) . 'mv-erguer-inscricoes';
+	if ( ! is_dir( $dir ) ) { wp_mkdir_p( $dir ); }
+	if ( ! file_exists( $dir . '/.htaccess' ) ) { @file_put_contents( $dir . '/.htaccess', "Require all denied\n" ); @file_put_contents( $dir . '/index.html', '' ); }
+	return $dir;
+}
+function mve_uuid_ok( $u ) {
+	$u = preg_replace( '/[^a-zA-Z0-9-]/', '', (string) $u );
+	return ( strlen( $u ) >= 8 && strlen( $u ) <= 64 ) ? $u : '';
+}
+function mve_registro_por_uuid( $uuid ) {
+	$p = get_posts( array( 'post_type' => 'mve_inscricao', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_mve_uuid', 'meta_value' => $uuid ) );
+	return $p ? (int) $p[0] : 0;
+}
+function mve_estado( $rid, $estado, $extra = array() ) {
+	update_post_meta( $rid, '_mve_estado', $estado );
+	foreach ( $extra as $k => $v ) { update_post_meta( $rid, $k, $v ); }
+}
+function mve_ext_imagem( $path ) {
+	$i = @getimagesize( $path );
+	if ( ! $i ) { return ''; }
+	$m = array( 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp' );
+	return isset( $m[ $i['mime'] ] ) ? $m[ $i['mime'] ] : '';
+}
+/** Guarda os arquivos que vieram nesta requisição (fotos[], foto, aFoto) na pasta protegida da inscrição. */
+function mve_registrar_arquivos( $rid, $uuid ) {
+	$pasta = trailingslashit( mve_pasta_inscricoes() ) . $uuid;
+	wp_mkdir_p( $pasta );
+	$arqs  = get_post_meta( $rid, '_mve_arquivos', true );
+	$arqs  = is_array( $arqs ) ? $arqs : array( 'fotos' => array(), 'perfil' => '' );
+	foreach ( array_merge( mve_arquivos( 'fotos' ), mve_arquivos( 'foto' ) ) as $f ) {
+		if ( count( $arqs['fotos'] ) >= MVE_MAX_FOTOS || ! mve_imagem_ok( $f ) ) { continue; }
+		$ext = mve_ext_imagem( $f['tmp_name'] );
+		$n   = 'foto-' . ( count( $arqs['fotos'] ) + 1 ) . '-' . wp_generate_password( 6, false, false ) . '.' . $ext;
+		if ( $ext && @move_uploaded_file( $f['tmp_name'], $pasta . '/' . $n ) ) { $arqs['fotos'][] = $n; }
+	}
+	foreach ( mve_arquivos( 'aFoto' ) as $f ) {
+		if ( ! mve_imagem_ok( $f ) ) { continue; }
+		$ext = mve_ext_imagem( $f['tmp_name'] );
+		if ( $ext && @move_uploaded_file( $f['tmp_name'], $pasta . '/perfil.' . $ext ) ) { $arqs['perfil'] = 'perfil.' . $ext; }
+	}
+	update_post_meta( $rid, '_mve_arquivos', $arqs );
+	return $arqs;
+}
+/** Guarda (ou completa) a inscrição: texto + arquivos. Devolve o ID do registro. */
+function mve_registrar( WP_REST_Request $r, $uuid, $canal ) {
+	$rid   = mve_registro_por_uuid( $uuid );
+	$dados = array();
+	foreach ( MVE_CAMPOS as $k ) {
+		$v = $r->get_param( $k );
+		if ( is_scalar( $v ) && '' !== (string) $v ) { $dados[ $k ] = mb_substr( (string) $v, 0, 6000 ); }
+	}
+	$nome = isset( $dados['mName'] ) ? sanitize_text_field( $dados['mName'] ) : '';
+	if ( ! $rid ) {
+		$rid = wp_insert_post( array( 'post_type' => 'mve_inscricao', 'post_status' => 'private', 'post_title' => ( '' !== $nome ? $nome : 'Inscrição sem nome' ) ), true );
+		if ( is_wp_error( $rid ) ) { throw new Exception( 'não foi possível criar o registro: ' . $rid->get_error_message() ); }
+		update_post_meta( $rid, '_mve_uuid', $uuid );
+		update_post_meta( $rid, '_mve_recebida_em', current_time( 'mysql' ) );
+		update_post_meta( $rid, '_mve_ip', mve_ip() );
+		mve_estado( $rid, 'recebida' );
+	}
+	if ( $dados ) {
+		$antes = get_post_meta( $rid, '_mve_dados', true );
+		update_post_meta( $rid, '_mve_dados', wp_slash( array_merge( is_array( $antes ) ? $antes : array(), $dados ) ) );
+		if ( '' !== $nome ) { wp_update_post( array( 'ID' => $rid, 'post_title' => $nome ) ); }
+	}
+	$canais = get_post_meta( $rid, '_mve_canais', true );
+	$canais = is_array( $canais ) ? $canais : array();
+	$canais[] = gmdate( 'Y-m-d H:i:s' ) . ' UTC · ' . $canal;
+	update_post_meta( $rid, '_mve_canais', array_slice( $canais, -20 ) );
+	mve_registrar_arquivos( $rid, $uuid );
+	return $rid;
+}
+function mve_req_de_registro( $rid ) {
+	$r = new WP_REST_Request( 'POST', '/mv-erguer/v1/enviar' );
+	$d = get_post_meta( $rid, '_mve_dados', true );
+	$r->set_body_params( is_array( $d ) ? $d : array() );
+	return $r;
+}
+function mve_arquivos_de_registro( $rid ) {
+	$uuid  = (string) get_post_meta( $rid, '_mve_uuid', true );
+	$pasta = trailingslashit( mve_pasta_inscricoes() ) . $uuid . '/';
+	$arqs  = get_post_meta( $rid, '_mve_arquivos', true );
+	$o     = array( 'fotos' => array(), 'perfil' => '' );
+	if ( is_array( $arqs ) ) {
+		foreach ( (array) $arqs['fotos'] as $n ) { if ( is_file( $pasta . $n ) ) { $o['fotos'][] = $pasta . $n; } }
+		if ( ! empty( $arqs['perfil'] ) && is_file( $pasta . $arqs['perfil'] ) ) { $o['perfil'] = $pasta . $arqs['perfil']; }
+	}
+	return $o;
+}
+function mve_subir_caminho( $path, $pai, $titulo, $alt ) {
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	$tmp = wp_tempnam( basename( $path ) );
+	if ( ! $tmp || ! @copy( $path, $tmp ) ) { return new WP_Error( 'copia', 'não foi possível ler a foto guardada' ); }
+	$id = media_handle_sideload( array( 'name' => sanitize_file_name( basename( $path ) ), 'tmp_name' => $tmp ), $pai, null, array( 'post_title' => $titulo ) );
+	if ( is_wp_error( $id ) ) { @unlink( $tmp ); return $id; }
+	update_post_meta( $id, '_wp_attachment_image_alt', $alt );
+	return $id;
+}
+
+/* ---------- canal principal ---------- */
+function mve_rota_enviar( WP_REST_Request $r ) {
+	$res = mve_receber( $r, 'principal' );
+	if ( $res instanceof WP_REST_Response && $res->get_status() >= 400 ) {
+		$d = $res->get_data();
+		mve_log( 'envio recusado (' . $res->get_status() . '): ' . ( isset( $d['erro'] ) ? $d['erro'] : '' ) . ' · ip ' . mve_ip() );
+	}
+	return $res;
+}
+
+/** Recebe uma inscrição completa (texto + arquivos) por qualquer canal: guarda, depois tenta publicar. */
+function mve_receber( WP_REST_Request $r, $canal ) {
 	// robôs preenchem o campo escondido: responde "ok" e não grava nada
 	if ( '' !== trim( (string) $r->get_param( 'aSite' ) ) ) { return array( 'ok' => true ); }
+	$uuid = mve_uuid_ok( $r->get_param( 'envio_id' ) );
+	if ( ! $uuid ) { $uuid = wp_generate_uuid4(); }
+
+	// mesma inscrição chegando de novo (nova tentativa): nunca duplica
+	$rid = mve_registro_por_uuid( $uuid );
+	if ( $rid ) {
+		$e = get_post_meta( $rid, '_mve_estado', true );
+		if ( 'publicada' === $e ) { $res = get_post_meta( $rid, '_mve_resultado', true ); return is_array( $res ) ? $res : array( 'ok' => true ); }
+		if ( in_array( $e, array( 'guardada', 'falhou', 'processando' ), true ) ) { return array( 'ok' => true, 'guardada' => true ); }
+	}
+
+	// 1) guarda antes de tudo
+	try {
+		$rid = mve_registrar( $r, $uuid, $canal );
+	} catch ( Throwable $t ) {
+		mve_log( 'REGISTRO FALHOU (' . $canal . '): ' . $t->getMessage() . ' em ' . basename( $t->getFile() ) . ':' . $t->getLine() );
+		return mve_erro( 'Não foi possível guardar a inscrição agora (' . $t->getMessage() . ').', 500 );
+	}
+
+	// 2) limite de envios por hora (proteção contra robôs)
+	$lim = mve_limite();
+	if ( $lim ) { mve_estado( $rid, 'limitada', array( '_mve_motivo' => 'muitos envios seguidos do mesmo endereço' ) ); return $lim; }
+
+	// 3) publica
+	mve_estado( $rid, 'processando' );
+	try {
+		$res = mve_processar( $rid, true );
+	} catch ( Throwable $t ) {
+		$msg = $t->getMessage() . ' (' . basename( $t->getFile() ) . ':' . $t->getLine() . ')';
+		mve_log( 'PUBLICAÇÃO FALHOU, inscrição guardada #' . $rid . ' (' . $canal . '): ' . $msg );
+		mve_estado( $rid, 'falhou', array( '_mve_motivo' => 'A publicação automática falhou: ' . $msg ) );
+		mve_email_guardada( $rid );
+		return array( 'ok' => true, 'guardada' => true );
+	}
+	if ( $res instanceof WP_REST_Response ) { // dados incompletos: a pessoa corrige e envia de novo
+		$d = $res->get_data();
+		mve_estado( $rid, 'invalida', array( '_mve_motivo' => isset( $d['erro'] ) ? $d['erro'] : '' ) );
+		return $res;
+	}
+	return $res;
+}
+
+/** Publica uma inscrição guardada. Devolve o resultado, ou uma resposta de erro se faltar dado. Falhas internas viram exceção. */
+function mve_processar( $rid, $avisar_equipe = true ) {
+	$r      = mve_req_de_registro( $rid );
+	$a      = mve_arquivos_de_registro( $rid );
 	$art_id = (int) $r->get_param( 'artistaId' ); // "Já tenho perfil": o perfil escolhido na lista
-	$c = mve_campos( $r, false, $art_id > 0 );
+	$c      = mve_campos( $r, false, $art_id > 0 );
 	if ( $c instanceof WP_REST_Response ) { return $c; }
 	if ( $art_id ) {
 		$ap = get_post( $art_id );
 		if ( ! $ap || 'mv3_artist' !== $ap->post_type || 'publish' !== $ap->post_status ) { return mve_erro( 'Não achamos esse perfil de artista. Escolha o seu nome de novo na lista.' ); }
 	}
-
-	$fotos = array_slice( mve_arquivos( 'fotos' ), 0, MVE_MAX_FOTOS );
-	foreach ( $fotos as $f ) { if ( ! mve_imagem_ok( $f ) ) { return mve_erro( 'Uma das fotos não pôde ser lida. Use JPG ou PNG.' ); } }
+	$fotos = array_slice( $a['fotos'], 0, MVE_MAX_FOTOS );
 	if ( ! $c['yt'] && ! $c['drive'] && ! $fotos ) { return mve_erro( 'Coloque um vídeo (YouTube ou Google Drive) ou pelo menos uma foto.' ); }
-	$perfil = $art_id ? array() : mve_arquivos( 'aFoto' );
-	if ( ! $art_id && ( ! $perfil || ! mve_imagem_ok( $perfil[0] ) ) ) { return mve_erro( 'Falta a sua foto de perfil (JPG ou PNG).' ); }
-	$lim = mve_limite();
-	if ( $lim ) { return $lim; }
+	if ( ! $art_id && ! $a['perfil'] ) { return mve_erro( 'Falta a sua foto de perfil (JPG ou PNG).' ); }
 
 	$criados  = array();
 	$desfazer = function () use ( &$criados ) { foreach ( array_reverse( $criados ) as $id ) { wp_delete_post( $id, true ); } };
-
-	if ( $art_id ) {
-		// perfil escolhido na lista: publica direto se o e-mail confere com o guardado nesse perfil; senão a equipe confirma
-		$artista  = $art_id;
-		$guardado = strtolower( (string) get_post_meta( $artista, '_mve_email', true ) );
-		$modo     = ( $guardado && hash_equals( $guardado, $c['email'] ) ) ? 'existente' : 'confirmar';
-	} else {
-	// artista (reaproveita o perfil criado antes com o mesmo e-mail)
-	$exist = get_posts( array( 'post_type' => 'mv3_artist', 'post_status' => array( 'publish', 'draft' ), 'numberposts' => 1, 'fields' => 'ids',
-		'meta_query' => array( array( 'key' => '_mve_email', 'value' => $c['email'] ), array( 'key' => '_mve_comunidade', 'value' => '1' ) ) ) );
-	$novo_artista = ! $exist;
-	if ( $exist ) {
-		$artista = (int) $exist[0];
-		if ( 'publish' !== get_post_status( $artista ) ) { wp_update_post( array( 'ID' => $artista, 'post_status' => 'publish' ) ); }
-	} else {
-		$artista = wp_insert_post( array( 'post_type' => 'mv3_artist', 'post_status' => 'publish', 'post_title' => $c['anome'], 'post_content' => $c['abio'] ), true );
-		if ( is_wp_error( $artista ) ) { return mve_erro( 'Não foi possível criar o perfil agora. Tente de novo.', 500 ); }
-		$criados[] = $artista;
-		update_post_meta( $artista, '_mv3_city', $c['acid'] );
-		update_post_meta( $artista, '_mv3_artist_role', 'autor' );
-		update_post_meta( $artista, '_mv3_photo_credit', $c['acred'] );
-		update_post_meta( $artista, '_mve_email', $c['email'] ); // privado: não aparece no site
-		update_post_meta( $artista, '_mve_comunidade', '1' );
-		$foto = mve_subir( $perfil[0], $artista, $c['anome'], 'Retrato de ' . $c['anome'] );
-		if ( is_wp_error( $foto ) ) { $desfazer(); return mve_erro( 'Não foi possível guardar a sua foto. Tente outra imagem.', 500 ); }
-		$criados[] = $foto;
-		set_post_thumbnail( $artista, $foto );
+	try {
+		if ( $art_id ) {
+			// perfil escolhido na lista: publica direto se o e-mail confere com o guardado nesse perfil; senão a equipe confirma
+			$artista  = $art_id;
+			$guardado = strtolower( (string) get_post_meta( $artista, '_mve_email', true ) );
+			$modo     = ( $guardado && hash_equals( $guardado, $c['email'] ) ) ? 'existente' : 'confirmar';
+		} else {
+			// reaproveita o perfil criado antes com o mesmo e-mail
+			$exist = get_posts( array( 'post_type' => 'mv3_artist', 'post_status' => array( 'publish', 'draft' ), 'numberposts' => 1, 'fields' => 'ids',
+				'meta_query' => array( array( 'key' => '_mve_email', 'value' => $c['email'] ), array( 'key' => '_mve_comunidade', 'value' => '1' ) ) ) );
+			if ( $exist ) {
+				$artista = (int) $exist[0];
+				if ( 'publish' !== get_post_status( $artista ) ) { wp_update_post( array( 'ID' => $artista, 'post_status' => 'publish' ) ); }
+				$modo = 'mesmo_email';
+			} else {
+				$artista = wp_insert_post( array( 'post_type' => 'mv3_artist', 'post_status' => 'publish', 'post_title' => $c['anome'], 'post_content' => $c['abio'] ), true );
+				if ( is_wp_error( $artista ) ) { throw new Exception( 'perfil: ' . $artista->get_error_message() ); }
+				$criados[] = $artista;
+				update_post_meta( $artista, '_mv3_city', $c['acid'] );
+				update_post_meta( $artista, '_mv3_artist_role', 'autor' );
+				update_post_meta( $artista, '_mv3_photo_credit', $c['acred'] );
+				update_post_meta( $artista, '_mve_email', $c['email'] ); // privado: não aparece no site
+				update_post_meta( $artista, '_mve_comunidade', '1' );
+				$foto = mve_subir_caminho( $a['perfil'], $artista, $c['anome'], 'Retrato de ' . $c['anome'] );
+				if ( is_wp_error( $foto ) ) { throw new Exception( 'foto de perfil: ' . $foto->get_error_message() ); }
+				$criados[] = $foto;
+				set_post_thumbnail( $artista, $foto );
+				$modo = 'novo';
+			}
+		}
+		// monumento (aguarda a equipe só quando o perfil escolhido não pôde ser conferido pelo e-mail)
+		$mon = wp_insert_post( array( 'post_type' => 'mv3_monument', 'post_status' => ( 'confirmar' === $modo ? 'pending' : 'publish' ), 'post_title' => $c['nome'], 'post_content' => $c['hist'] ), true );
+		if ( is_wp_error( $mon ) ) { throw new Exception( 'monumento: ' . $mon->get_error_message() ); }
+		$criados[] = $mon;
+		mve_gravar_monumento( $mon, $c );
+		update_post_meta( $mon, '_mv3_artist_id', $artista );
+		update_post_meta( $mon, '_mve_comunidade', '1' );
+		update_post_meta( $mon, '_mve_enviado_em', current_time( 'mysql' ) );
+		update_post_meta( $mon, '_mve_email_envio', $c['email'] ); // privado: contato para ajustes
+		update_post_meta( $mon, '_mve_inscricao', $rid );
+		if ( $art_id ) { update_post_meta( $mon, '_mve_perfil_existente', '1' ); }
+		if ( 'confirmar' === $modo ) { update_post_meta( $mon, '_mve_aguarda_vinculo', '1' ); }
+		$ids = array();
+		foreach ( $fotos as $i => $f ) {
+			$id = mve_subir_caminho( $f, $mon, $c['nome'] . ' — foto ' . ( $i + 1 ), $c['nome'] );
+			if ( is_wp_error( $id ) ) { throw new Exception( 'foto ' . ( $i + 1 ) . ': ' . $id->get_error_message() ); }
+			$criados[] = $id;
+			$ids[]     = $id;
+		}
+		mve_gravar_fotos( $mon, $ids );
+	} catch ( Throwable $t ) {
+		$desfazer(); // nada pela metade no site; a inscrição continua guardada
+		throw $t;
 	}
-	$modo = $novo_artista ? 'novo' : 'mesmo_email';
+	$res = array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ), 'aguarda' => ( 'confirmar' === $modo ) );
+	mve_estado( $rid, 'publicada', array( '_mve_monumento' => $mon, '_mve_resultado' => $res, '_mve_motivo' => '' ) );
+	if ( $avisar_equipe ) {
+		$enviado = mve_email_inscrito( $mon, $modo );
+		update_post_meta( $mon, '_mve_email_enviado', $enviado ? '1' : '0' );
 	}
-
-	// monumento (aguarda a equipe só quando o perfil escolhido não pôde ser conferido pelo e-mail)
-	$mon = wp_insert_post( array( 'post_type' => 'mv3_monument', 'post_status' => ( 'confirmar' === $modo ? 'pending' : 'publish' ), 'post_title' => $c['nome'], 'post_content' => $c['hist'] ), true );
-	if ( is_wp_error( $mon ) ) { $desfazer(); return mve_erro( 'Não foi possível criar o monumento agora. Tente de novo.', 500 ); }
-	$criados[] = $mon;
-	mve_gravar_monumento( $mon, $c );
-	update_post_meta( $mon, '_mv3_artist_id', $artista );
-	update_post_meta( $mon, '_mve_comunidade', '1' );
-	update_post_meta( $mon, '_mve_enviado_em', current_time( 'mysql' ) );
-	update_post_meta( $mon, '_mve_email_envio', $c['email'] ); // privado: contato para ajustes
-	if ( $art_id ) { update_post_meta( $mon, '_mve_perfil_existente', '1' ); }
-	if ( 'confirmar' === $modo ) { update_post_meta( $mon, '_mve_aguarda_vinculo', '1' ); }
-
-	$ids = array();
-	foreach ( $fotos as $i => $f ) {
-		$id = mve_subir( $f, $mon, $c['nome'] . ' — foto ' . ( $i + 1 ), $c['nome'] );
-		if ( is_wp_error( $id ) ) { $desfazer(); return mve_erro( 'Não foi possível guardar as fotos. Tente de novo.', 500 ); }
-		$criados[] = $id;
-		$ids[]     = $id;
-	}
-	mve_gravar_fotos( $mon, $ids );
-
-	$enviado = mve_email_inscrito( $mon, $modo );
-	update_post_meta( $mon, '_mve_email_enviado', $enviado ? '1' : '0' );
-	return array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ), 'aguarda' => ( 'confirmar' === $modo ) );
+	return $res;
 }
+
+/* ---------- plano B: outro caminho no site (admin-ajax), caso o principal seja bloqueado ---------- */
+add_action( 'wp_ajax_nopriv_mve_guardar', 'mve_ajax_guardar' );
+add_action( 'wp_ajax_mve_guardar', 'mve_ajax_guardar' );
+function mve_ajax_guardar() {
+	$r = new WP_REST_Request( 'POST', '/mv-erguer/v1/enviar' );
+	$r->set_body_params( wp_unslash( $_POST ) );
+	$modo = isset( $_POST['modo'] ) ? sanitize_key( wp_unslash( $_POST['modo'] ) ) : 'completo';
+	try {
+		if ( 'completo' === $modo ) {
+			$res = mve_receber( $r, 'plano B (completo)' );
+		} else {
+			if ( '' !== trim( (string) $r->get_param( 'aSite' ) ) ) { wp_send_json( array( 'ok' => true ) ); }
+			$uuid = mve_uuid_ok( $r->get_param( 'envio_id' ) );
+			if ( ! $uuid ) { wp_send_json( array( 'ok' => false, 'erro' => 'Inscrição sem identificação.' ), 400 ); }
+			$lim = mve_limite( 'mve_b_' . md5( mve_ip() ), 40 );
+			if ( $lim ) { wp_send_json( $lim->get_data(), 429 ); }
+			$rid = mve_registro_por_uuid( $uuid );
+			if ( 'foto' === $modo ) {
+				if ( ! $rid ) { wp_send_json( array( 'ok' => false, 'erro' => 'Inscrição não encontrada.' ), 404 ); }
+				$arqs = mve_registrar_arquivos( $rid, $uuid );
+				wp_send_json( array( 'ok' => true, 'fotos' => count( $arqs['fotos'] ), 'perfil' => '' !== $arqs['perfil'] ) );
+			}
+			// modo "texto": guarda o texto agora; as fotos chegam uma a uma em seguida
+			$rid = mve_registrar( $r, $uuid, 'plano B (texto, fotos em seguida)' );
+			if ( 'publicada' !== get_post_meta( $rid, '_mve_estado', true ) ) {
+				mve_estado( $rid, 'guardada', array( '_mve_motivo' => 'Chegou pelo plano B: o envio normal não passou, então o texto chegou primeiro e as fotos foram enviadas uma a uma.' ) );
+				if ( ! get_post_meta( $rid, '_mve_avisada', true ) ) { wp_schedule_single_event( time() + 120, 'mve_avisar_guardada', array( $rid ) ); }
+			}
+			$res = array( 'ok' => true, 'guardada' => true );
+		}
+	} catch ( Throwable $t ) {
+		mve_log( 'PLANO B FALHOU (' . $modo . '): ' . $t->getMessage() . ' em ' . basename( $t->getFile() ) . ':' . $t->getLine() );
+		wp_send_json( array( 'ok' => false, 'erro' => 'Não foi possível guardar agora.' ), 500 );
+	}
+	if ( $res instanceof WP_REST_Response ) { wp_send_json( $res->get_data(), $res->get_status() ); }
+	wp_send_json( $res );
+}
+// o aviso do plano B sai 2 minutos depois, para já contar as fotos que chegaram uma a uma
+add_action( 'mve_avisar_guardada', function ( $rid ) { if ( ! get_post_meta( $rid, '_mve_avisada', true ) && 'publicada' !== get_post_meta( $rid, '_mve_estado', true ) ) { mve_email_guardada( $rid ); } } );
+
+/* ---------- e-mail "Inscrição guardada" ---------- */
+function mve_email_guardada( $rid ) {
+	$d     = get_post_meta( $rid, '_mve_dados', true );
+	$d     = is_array( $d ) ? $d : array();
+	$a     = mve_arquivos_de_registro( $rid );
+	$g     = function ( $k ) use ( $d ) { return isset( $d[ $k ] ) ? (string) $d[ $k ] : ''; };
+	$e     = 'esc_html';
+	$nome  = $g( 'mName' ) ? $g( 'mName' ) : 'Inscrição sem nome';
+	$email = sanitize_email( $g( 'aEmail' ) );
+	$art   = (int) $g( 'artistaId' ) ? 'perfil já existente: ' . get_the_title( (int) $g( 'artistaId' ) ) : $g( 'aNome' ) . ' (perfil novo)';
+	$ficha = '';
+	$fj    = json_decode( $g( 'ficha' ), true );
+	if ( is_array( $fj ) ) { foreach ( $fj as $f ) { if ( ! empty( $f['role'] ) ) { $ficha .= $e( $f['role'] ) . ': ' . $e( implode( ', ', (array) $f['people'] ) ) . '<br>'; } } }
+	$h  = mve_caixa( '<b>Nada se perdeu.</b> Esta inscrição chegou e está guardada no site, mas ainda <b>não foi publicada</b>.<br><span style="font-size:13px">Motivo: ' . $e( (string) get_post_meta( $rid, '_mve_motivo', true ) ) . '</span>' );
+	$h .= mve_btn( 'Restaurar e publicar', mve_link_moderar( $rid, 'restaurar' ) ) . mve_btn( 'Ver no WordPress', admin_url( 'post.php?post=' . $rid . '&action=edit' ), false );
+	$h .= '<table style="width:100%;border-collapse:collapse;margin-top:14px;border-top:1px solid #eee7dd">';
+	$h .= mve_lin( 'Monumento', $e( $nome ) . ( $g( 'mYear' ) ? ' · ' . $e( $g( 'mYear' ) ) : '' ) );
+	$h .= mve_lin( 'Artista', $e( $art ) );
+	$h .= mve_lin( 'E-mail', $email ? '<a href="mailto:' . esc_attr( $email ) . '" style="color:#A35A27">' . $e( $email ) . '</a>' : '—' );
+	$h .= mve_lin( 'Bairro / cidade', $e( $g( 'mBairro' ) ) );
+	$h .= mve_lin( 'Território', $e( $g( 'lat' ) . ', ' . $g( 'lng' ) ) . ( $g( 'raio' ) ? ' · raio de ' . $e( mve_raio_txt( $g( 'raio' ) ) ) : '' ) );
+	$h .= mve_lin( 'Vídeo', $g( 'mYt' ) ? $e( $g( 'mYt' ) ) : '—' );
+	if ( $g( 'mDrive' ) ) { $h .= mve_lin( 'Vídeo no Drive', $e( $g( 'mDrive' ) ) ); }
+	$h .= mve_lin( 'Fotos guardadas', count( $a['fotos'] ) . ( $a['perfil'] ? ' + foto de perfil' : '' ) . ( $g( 'mCred' ) ? ' · autoria: ' . $e( $g( 'mCred' ) ) : '' ) );
+	$h .= mve_lin( 'História', nl2br( $e( $g( 'mHist' ) ) ) );
+	$h .= mve_lin( 'Ficha técnica', $ficha ? $ficha : '—' );
+	if ( ! (int) $g( 'artistaId' ) ) { $h .= mve_lin( 'Minibio', nl2br( $e( $g( 'aBio' ) ) ) ); }
+	$h .= '</table>';
+	update_post_meta( $rid, '_mve_avisada', current_time( 'mysql' ) );
+	return mve_mandar( MVE_PARA, 'Inscrição guardada (não publicada): ' . $nome, mve_email_html( 'Inscrição guardada', $nome, $h ), $email ? $email : '' );
+}
+
+/* ---------- painel: o que tem em cada inscrição guardada ---------- */
+add_filter( 'manage_mve_inscricao_posts_columns', function ( $c ) {
+	return array( 'cb' => $c['cb'], 'title' => 'Monumento', 'mve_estado' => 'Situação', 'mve_email' => 'E-mail', 'mve_fotos' => 'Fotos', 'date' => 'Recebida' );
+} );
+add_action( 'manage_mve_inscricao_posts_custom_column', function ( $col, $id ) {
+	$d = get_post_meta( $id, '_mve_dados', true );
+	if ( 'mve_estado' === $col ) {
+		$est = (string) get_post_meta( $id, '_mve_estado', true );
+		$rot = array( 'publicada' => 'publicada', 'guardada' => 'guardada · restaurar', 'falhou' => 'falhou · restaurar', 'invalida' => 'incompleta', 'processando' => 'em andamento', 'recebida' => 'recebida', 'limitada' => 'barrada (limite)' );
+		echo esc_html( isset( $rot[ $est ] ) ? $rot[ $est ] : $est );
+		$mon = (int) get_post_meta( $id, '_mve_monumento', true );
+		if ( $mon ) { echo ' · <a href="' . esc_url( get_edit_post_link( $mon ) ) . '">ver monumento</a>'; }
+		elseif ( in_array( $est, array( 'guardada', 'falhou', 'processando' ), true ) ) { echo ' · <a href="' . esc_url( mve_link_moderar( $id, 'restaurar' ) ) . '">restaurar e publicar</a>'; }
+	}
+	if ( 'mve_email' === $col ) { echo esc_html( is_array( $d ) && isset( $d['aEmail'] ) ? $d['aEmail'] : '' ); }
+	if ( 'mve_fotos' === $col ) { $a = mve_arquivos_de_registro( $id ); echo (int) count( $a['fotos'] ); }
+}, 10, 2 );
+add_action( 'add_meta_boxes_mve_inscricao', function () {
+	add_meta_box( 'mve_dados', 'O que a pessoa enviou', function ( $p ) {
+		$d   = get_post_meta( $p->ID, '_mve_dados', true );
+		$est = (string) get_post_meta( $p->ID, '_mve_estado', true );
+		echo '<p><b>Situação:</b> ' . esc_html( $est ) . ' · ' . esc_html( (string) get_post_meta( $p->ID, '_mve_motivo', true ) ) . '</p>';
+		if ( 'publicada' !== $est ) { echo '<p><a class="button button-primary" href="' . esc_url( mve_link_moderar( $p->ID, 'restaurar' ) ) . '">Restaurar e publicar</a></p>'; }
+		echo '<table class="widefat striped"><tbody>';
+		foreach ( (array) $d as $k => $v ) { echo '<tr><th style="width:140px">' . esc_html( $k ) . '</th><td>' . nl2br( esc_html( (string) $v ) ) . '</td></tr>'; }
+		$a = mve_arquivos_de_registro( $p->ID );
+		echo '<tr><th>arquivos</th><td>' . count( $a['fotos'] ) . ' foto(s)' . ( $a['perfil'] ? ' + foto de perfil' : '' ) . '<br><small>' . esc_html( trailingslashit( mve_pasta_inscricoes() ) . get_post_meta( $p->ID, '_mve_uuid', true ) ) . '</small></td></tr>';
+		echo '<tr><th>caminho</th><td>' . esc_html( implode( ' | ', (array) get_post_meta( $p->ID, '_mve_canais', true ) ) ) . '</td></tr>';
+		echo '</tbody></table>';
+	}, 'mve_inscricao', 'normal', 'high' );
+} );
 
 function mve_gravar_monumento( $mon, $c ) {
 	$meta = array(
@@ -529,6 +831,7 @@ add_action( 'template_redirect', function () {
 	$id   = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 	$t    = isset( $_GET['t'] ) ? sanitize_text_field( wp_unslash( $_GET['t'] ) ) : '';
 	$post = get_post( $id );
+	if ( 'restaurar' === $acao ) { mve_pagina_restaurar( $post, $t ); }
 	if ( ! in_array( $acao, array( 'ok', 'ajuste', 'final', 'tirar', 'voltar', 'vincular' ), true ) || ! $post || 'mv3_monument' !== $post->post_type
 		|| '1' !== get_post_meta( $id, '_mve_comunidade', true ) || ! hash_equals( mve_token( $id, $acao ), $t ) ) {
 		mve_pagina( 'Link inválido', '<p>Este link não vale mais ou foi copiado pela metade.</p>' );
@@ -605,6 +908,40 @@ add_action( 'template_redirect', function () {
 		mve_pagina( 'De volta no ar', '<p>' . $nome . ' voltou para o mapa.</p>' . $ver );
 	}
 } );
+
+/** "Restaurar e publicar": publica uma inscrição que ficou guardada. Sempre pergunta antes. */
+function mve_pagina_restaurar( $rec, $t ) {
+	if ( ! $rec || 'mve_inscricao' !== $rec->post_type || ! hash_equals( mve_token( $rec->ID, 'restaurar' ), (string) $t ) ) {
+		mve_pagina( 'Link inválido', '<p>Este link não vale mais ou foi copiado pela metade.</p>' );
+	}
+	$rid  = $rec->ID;
+	$nome = '<b>' . esc_html( $rec->post_title ) . '</b>';
+	$btn  = '<button type="submit" style="margin-top:12px;padding:13px 22px;border-radius:999px;border:0;background:#C67033;color:#fff;font-weight:700;font-size:15px;cursor:pointer">Restaurar e publicar</button>';
+	if ( 'publicada' === get_post_meta( $rid, '_mve_estado', true ) ) {
+		$mon = (int) get_post_meta( $rid, '_mve_monumento', true );
+		mve_pagina( 'Já está publicada', '<p>' . $nome . ' já foi publicada.</p>' . ( $mon ? '<p><a href="' . esc_url( get_permalink( $mon ) ) . '" style="color:#E3A46F">Ver o monumento</a></p>' : '' ) );
+	}
+	$a = mve_arquivos_de_registro( $rid );
+	if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+		mve_pagina( 'Restaurar e publicar?', '<p style="margin:0 0 6px">' . $nome . '</p><p>A inscrição está guardada com ' . count( $a['fotos'] ) . ' foto(s)' . ( $a['perfil'] ? ' e a foto de perfil' : '' ) . '. Ao confirmar, ela é publicada como se tivesse entrado normalmente, e a pessoa recebe um e-mail avisando.</p>'
+			. '<p style="font-size:13px;opacity:.75">Motivo de ter ficado guardada: ' . esc_html( (string) get_post_meta( $rid, '_mve_motivo', true ) ) . '</p><form method="post">' . $btn . '</form>' );
+	}
+	try {
+		$res = mve_processar( $rid, false );
+	} catch ( Throwable $t ) {
+		$msg = $t->getMessage() . ' (' . basename( $t->getFile() ) . ':' . $t->getLine() . ')';
+		mve_log( 'RESTAURAR FALHOU #' . $rid . ': ' . $msg );
+		mve_estado( $rid, 'falhou', array( '_mve_motivo' => 'Restaurar falhou: ' . $msg ) );
+		mve_pagina( 'Ainda não deu', '<p>' . $nome . ' continua guardada; nada se perdeu.</p><p style="font-size:14px">Erro: ' . esc_html( $msg ) . '</p><p style="font-size:14px">Copie esta mensagem e mande para quem cuida do site. Os dados completos estão no WordPress, em <b>Inscrições do mapa</b>.</p>' );
+	}
+	if ( $res instanceof WP_REST_Response ) {
+		$d = $res->get_data();
+		mve_pagina( 'Falta um dado', '<p>' . $nome . ' continua guardada.</p><p>' . esc_html( isset( $d['erro'] ) ? $d['erro'] : '' ) . '</p><p style="font-size:14px">Corrija no WordPress, em <b>Inscrições do mapa</b>, ou responda o e-mail para falar com a pessoa.</p>' );
+	}
+	$mon = (int) $res['id'];
+	if ( empty( $res['aguarda'] ) ) { mve_email_no_ar( $mon ); } else { mve_email_inscrito( $mon, 'confirmar' ); }
+	mve_pagina( 'Publicado', '<p>' . $nome . ' está no ar' . ( empty( $res['aguarda'] ) ? ' e a pessoa recebeu um e-mail avisando' : ' (aguardando a confirmação do perfil de artista: veja o e-mail "confirmar artista")' ) . '.</p><p><a href="' . esc_url( get_permalink( $mon ) ) . '" style="color:#E3A46F">Ver o monumento</a></p>' );
+}
 
 function mve_tirar( $id ) {
 	wp_update_post( array( 'ID' => $id, 'post_status' => 'draft' ) );

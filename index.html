@@ -312,6 +312,14 @@
   .aviso{margin:6px 0 0;font-size:12px;line-height:1.45;color:#E3C46F} .aviso button{background:none;border:0;color:var(--c-mon);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
   .hint2{display:block;margin-top:5px;font-size:11.5px;color:var(--muted);line-height:1.4}
   .okp .okp-eq{font-size:12px!important;color:var(--faint)!important}
+  .colar-abre{width:100%;text-align:left;background:#15100C;border:1px dashed #5C4330;border-radius:10px;padding:10px 12px;color:var(--muted);font:inherit;font-size:12.5px;line-height:1.45;cursor:pointer}
+  .colar-abre b{color:var(--c-mon)} .colar-abre:hover{border-color:var(--c-mon)}
+  #fColar{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--fg);font-family:var(--sans);font-size:13.5px;line-height:1.5;resize:vertical}
+  #fColar::placeholder{color:var(--faint)}
+  .colar-acoes{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+  .rasc{padding:12px 13px;border-radius:11px;background:#141E16;border:1px solid #3E5A33;display:flex;flex-direction:column;gap:6px}
+  .rasc b{font-size:13px} .rasc span{font-size:12.5px;color:var(--muted)} .rasc-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  #okMail{text-decoration:none}
   .okp{align-items:center;text-align:center;padding:18px 4px 8px} .okp .okic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#2A1A10;color:var(--c-mon);font-size:26px;font-weight:700;border:1px solid #7A4520}
   .okp h3{margin:4px 0 0;font-size:18px} .okp p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
   .btn.primaryP{background:linear-gradient(180deg,#C67033,#A35A27);border-color:#C67033;color:#FFF4EA}
@@ -389,6 +397,8 @@
     <div class="mb">
       <!-- 1. o monumento -->
       <section data-step="1">
+        <div class="rasc" id="wRasc" hidden><b>Você começou uma inscrição <span id="wRascQuando"></span>.</b><span id="wRascNome"></span>
+          <div class="rasc-acoes"><button type="button" class="btn sm primaryP" id="wRascSim">Continuar de onde parei</button><button type="button" class="btn sm" id="wRascNao">Começar de novo</button></div></div>
         <div class="ajuste" id="wAjuste" hidden><b>O que a equipe pediu para ajustar</b><p id="wAjusteTxt"></p></div>
         <div class="fld"><label for="mYt">Vídeo no YouTube <em>(link)</em></label><input type="url" id="mYt" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off"><p class="err" data-err="mYt"></p></div>
         <div class="ytprev" id="mYtPrev" hidden></div>
@@ -423,6 +433,14 @@
       <!-- 3. ficha técnica -->
       <section data-step="3" hidden>
         <p class="hint">Como nos créditos de um filme: a função e quem fez. Fica igual à ficha técnica das obras do acervo.</p>
+        <div class="colar" id="fColarBox">
+          <button type="button" class="colar-abre" id="fColarAbre">Já tem a ficha pronta? <b>Cole o texto inteiro</b> e a gente separa as funções.</button>
+          <div id="fColarForm" hidden>
+            <textarea id="fColar" rows="6" placeholder="Direção: Ana Souza&#10;Performance: Ana Souza e João Lima&#10;Câmera — Breno César&#10;Montagem - Rick Almeida"></textarea>
+            <small class="hint2">Uma função por linha, separando com dois-pontos ou travessão. Também vale a função numa linha e os nomes na linha de baixo.</small>
+            <div class="colar-acoes"><button type="button" class="btn sm" id="fColarCancela">Cancelar</button><button type="button" class="btn sm primaryP" id="fColarOk">Organizar em funções</button></div>
+          </div>
+        </div>
         <div id="fRows" class="frows"></div>
         <button type="button" class="btn sm add" id="fAdd">+ Adicionar função</button>
         <datalist id="fRoles"><option>Direção</option><option>Concepção</option><option>Performance</option><option>Direção de fotografia</option><option>Câmera</option><option>Som direto</option><option>Montagem</option><option>Música original</option><option>Trilha sonora</option><option>Direção de arte</option><option>Figurino</option><option>Produção</option><option>Colorização e finalização</option><option>Acessibilidade (audiodescrição e Libras)</option></datalist>
@@ -469,6 +487,7 @@
         <div class="okic">✓</div>
         <h3 id="okT">Monumento erguido</h3>
         <p id="okP">Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.</p>
+        <a class="btn sm" id="okMail" hidden>Enviar também por e-mail</a>
         <p class="okp-eq" id="okEq">Somos uma equipe pequena: a resposta pode demorar um pouco, mas ela vem.</p>
       </section>
     </div>
@@ -859,7 +878,8 @@
   buildLegend();updTotal();
 
   /* ========= LOCALIZAR ========= */
-  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+  let toastT=null;
+  function toast(msg,ms){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||3000);}
   function onLocatedMarker(lat,lng){
     if(meMarker)map.removeLayer(meMarker);
     meMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="me-mk" style="width:16px;height:16px"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map);
@@ -1083,6 +1103,7 @@
   function setErr(k,msg){const e=wiz.querySelector('[data-err="'+k+'"]');if(e)e.textContent=msg||'';const f=$(k);if(f&&f.classList)f.classList.toggle('bad',!!msg);return !msg;}
   function go(st){
     W.step=st;
+    if(st!=='ok'){salvarRascunho();$('okMail').hidden=true;}
     wiz.querySelectorAll('section[data-step]').forEach(x=>x.hidden=String(x.dataset.step)!==String(st));
     $('wStepTxt').textContent=STEP_TXT[st];
     wiz.querySelectorAll('.prog i').forEach((x,i)=>x.classList.toggle('on',st==='ok'||i<st));
@@ -1093,7 +1114,19 @@
     if(st===LAST)setTimeout(renderPreview,30);
     wiz.querySelector('.mb').scrollTop=0;
   }
-  function openWiz(){go(1);scrimM.classList.add('show');}
+  async function openWiz(){
+    if(W.enviado&&!W.edit)limparForm();
+    if(!W.edit&&!W.envioId)W.envioId=novoId();
+    go(1);scrimM.classList.add('show');
+    if(W.edit)return;
+    const r=await BD.get('rascunho');
+    if(!temConteudo(r)||r.id===W.envioId)return;
+    W.rascPendente=r;
+    const dt=new Date(r.salvoEm||Date.now());
+    $('wRascQuando').textContent='em '+dt.toLocaleDateString('pt-BR')+' às '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    $('wRascNome').textContent=(r.f&&r.f.mName?'“'+r.f.mName+'” · ':'')+(r.fotos&&r.fotos.length?r.fotos.length+' foto(s) · ':'')+'ficou guardada neste aparelho.';
+    $('wRasc').hidden=false;
+  }
   function closeWiz(){scrimM.classList.remove('show');}
   $('monOpen').onclick=openWiz;
   scrimM.addEventListener('click',e=>{if(e.target===scrimM)closeWiz();});
@@ -1159,7 +1192,7 @@
       W.t.mk.on('dragend',e=>{const ll=e.target.getLatLng();setPos(ll.lat,ll.lng);autoBairro();});
       W.tm.on('click',e=>{if(W.mode!=='pick')setMode('pick');setPos(e.latlng.lat,e.latlng.lng);autoBairro();});
       setPos(W.pos.lat,W.pos.lng);fitTerr(W.tm,W.pos,raio());
-      if(W.edit){setMode('pick');}
+      if(W.edit||W.restaurado){setMode('pick');}
       else if(me){setMode('gps');autoBairro();}
       else if(navigator.geolocation){setMode('gps');navigator.geolocation.getCurrentPosition(p=>{if(!W.moved){setPos(p.coords.latitude,p.coords.longitude,true);autoBairro();}},()=>{if(!W.moved)setMode('pick');},{timeout:6000,maximumAge:60000});}
       else setMode('pick');
@@ -1223,6 +1256,39 @@
     $('fRows').appendChild(r);return r;
   }
   fRow('Direção','');fRow('Performance','');
+  // ficha colada inteira: "Função: nomes", "Função — nomes", "Função - nomes" ou função numa linha e nomes na seguinte
+  function lerFicha(txt){
+    const SEP=/^(.{2,80}?)\s*(?::|—|–|\s-\s|\t)\s*(.+)$/;
+    const ls=String(txt||'').split(/\r?\n/).map(l=>l.replace(/^\s*(?:[-•*·]|\d+[.)])\s+/,'').trim()).filter(Boolean);
+    const out=[];
+    for(let i=0;i<ls.length;i++){
+      const m=ls[i].match(SEP);
+      if(m){out.push([m[1].trim(),m[2].trim()]);continue;}
+      const nx=ls[i+1];
+      if(nx&&!SEP.test(nx)){out.push([ls[i],nx]);i++;}else out.push([ls[i],'']);
+    }
+    return out.slice(0,20);
+  }
+  function aplicarFicha(pares){
+    if(!pares.length)return false;
+    const rows=[...$('fRows').children];
+    const vazias=rows.every(r=>!r.children[1].value.trim());
+    if(vazias)$('fRows').innerHTML='';
+    pares.forEach(([a,b])=>{if($('fRows').children.length<20)fRow(a,b);});
+    setErr('ficha');
+    const falta=pares.filter(p=>!p[1]).length;
+    toast(pares.length+' funç'+(pares.length>1?'ões organizadas':'ão organizada')+(falta?' · confira '+falta+' sem nome':''),4000);
+    return true;
+  }
+  $('fColarAbre').onclick=()=>{$('fColarForm').hidden=false;$('fColarAbre').hidden=true;$('fColar').focus();};
+  $('fColarCancela').onclick=()=>{$('fColarForm').hidden=true;$('fColarAbre').hidden=false;$('fColar').value='';};
+  $('fColarOk').onclick=()=>{if(aplicarFicha(lerFicha($('fColar').value))){$('fColar').value='';$('fColarForm').hidden=true;$('fColarAbre').hidden=false;}else toast('Cole a ficha técnica no campo, uma função por linha.');};
+  // colar várias linhas direto num campo da ficha também organiza
+  $('fRows').addEventListener('paste',e=>{
+    const t=(e.clipboardData||window.clipboardData)?.getData('text')||'';
+    if(!/\n/.test(t.trim()))return;
+    e.preventDefault();aplicarFicha(lerFicha(t));
+  });
   $('fAdd').onclick=()=>{if($('fRows').children.length>=20)return toast('Até 20 funções');fRow().children[0].focus();};
   function ficha(){return [...$('fRows').children].map(r=>({role:r.children[0].value.trim(),people:[r.children[1].value.trim()]})).filter(x=>x.role&&x.people[0]);}
   function check3(){
@@ -1334,18 +1400,18 @@
     if(W.edit)return sendAjuste(lat,lng);
     const d=draft(lat,lng);
     if(ENVIO){
-      const fd=new FormData();
       const existe=W.perfil==='existe'&&W.artista;
-      (existe?['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aEmail']:['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred']).forEach(k=>fd.append(k,val(k)));
-      if(existe)fd.append('artistaId',W.artista.id);
-      fd.append('lat',lat);fd.append('lng',lng);fd.append('raio',d.raio);fd.append('ficha',JSON.stringify(d.ficha));
-      W.fotos.forEach((f,i)=>fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg'));if(!existe)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
+      if(!W.envioId)W.envioId=novoId();
+      const it=montarEnvio(lat,lng,d);
       $('wNext').disabled=true;$('wNext').textContent='Enviando…';
-      fd.append('aSite',val('aSite'));
-      let j=null;
-      try{const r=await fetch(ENVIO,{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;if(j.link)d.link=j.link;W.aguarda=!!j.aguarda;}
-      catch(e){$('wNext').disabled=false;$('wNext').textContent='Erguer monumento';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
-      $('wNext').disabled=false;
+      const r=await enviarInscricao(it);
+      $('wNext').disabled=false;$('wNext').textContent='Erguer monumento';
+      if(r.estado==='recusa'){toast(r.msg,9000);W.envioId=novoId();salvarRascunho();return;}
+      if(r.estado==='pendente'){it.rasc=estadoForm();await filaAdd(it);await BD.del('rascunho');W.envioId=null;W.enviado=true;mostrarFinal('pendente',it);return;}
+      await BD.del('rascunho');W.envioId=null;W.enviado=true;
+      if(r.estado==='guardado'){mostrarFinal('guardado',it,r);return;}
+      const j=r.j;if(j.link)d.link=j.link;W.aguarda=r.estado==='aguarda';
+      $('okMail').hidden=true;
       $('okP').textContent=W.aguarda?'Recebemos! Como ele foi ligado a um perfil que já existe na plataforma, a equipe confirma que é você e publica. Você recebe um e-mail quando estiver no ar.'
         :(existe?'Ele já está no mapa dos monumentos e entrou na lista das suas obras em Artistas. Se precisarmos de algum ajuste, escrevemos para você.'
         :'Ele já está no mapa dos monumentos, e o seu perfil está na página Artistas. Se precisarmos de algum ajuste, escrevemos para você.');
@@ -1356,8 +1422,166 @@
     refresh();W.last=d;
     $('okT').textContent=W.aguarda?'“'+d.name+'” foi enviado':'“'+d.name+'” foi erguido';if(W.aguarda)W.last=null;go('ok');
   }
+  /* ===== Plano B no aparelho: rascunho automático, novas tentativas, outro caminho no site e fila ===== */
+  function novoId(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():('mv-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12));}
+  // banco do próprio aparelho (IndexedDB): guarda texto e fotos mesmo sem internet
+  const BD={db:null,
+    abrir(){if(this.db)return Promise.resolve(this.db);return new Promise((ok,er)=>{try{const q=indexedDB.open('mv-erguer',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(this.db=q.result);q.onerror=()=>er(q.error);}catch(e){er(e);}});},
+    async get(k){try{const db=await this.abrir();return await new Promise(ok=>{const t=db.transaction('kv').objectStore('kv').get(k);t.onsuccess=()=>ok(t.result);t.onerror=()=>ok(undefined);});}catch(e){return undefined;}},
+    async set(k,v){try{const db=await this.abrir();return await new Promise(ok=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>ok(true);t.onerror=()=>ok(false);t.onabort=()=>ok(false);});}catch(e){return false;}},
+    async del(k){try{const db=await this.abrir();await new Promise(ok=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=()=>ok();t.onerror=()=>ok();});}catch(e){}}
+  };
+  const CAMPOS=['mYt','mDrive','mName','mYear','mHist','mCred','mBairro','aNome','aCidade','aBio','aEmail','aCred'];
+  function estadoForm(){
+    return {id:W.envioId,salvoEm:Date.now(),step:typeof W.step==='number'?W.step:1,
+      f:Object.fromEntries(CAMPOS.map(k=>[k,$(k).value])),ok:$('aOk').checked,
+      pos:W.pos||null,raioIdx:+$('tRaio').value,ficha:[...$('fRows').children].map(r=>[r.children[0].value,r.children[1].value]),
+      perfil:W.perfil,artista:W.artista,fotos:W.fotos.filter(f=>f.blob).map(f=>f.blob),aFoto:W.aFoto&&W.aFoto.blob?W.aFoto.blob:null};
+  }
+  function limparForm(){
+    W.enviado=false;W.restaurado=false;W.moved=false;W.pos=null;W.last=null;W.aguarda=false;
+    CAMPOS.forEach(k=>{$(k).value='';});$('aSite').value='';$('aOk').checked=false;$('mYt').dispatchEvent(new Event('input'));
+    W.fotos.forEach(f=>f.blob&&URL.revokeObjectURL(f.url));W.fotos=[];drawThumbs();
+    W.aFoto=null;$('aFotoPh').innerHTML='<span>+ foto<br>sua</span>';$('aFotoPh').classList.remove('has');
+    $('fRows').innerHTML='';fRow('Direção','');fRow('Performance','');
+    setPerfil('novo');W.artista=null;W.bairroManual=false;
+    ['mHist','aBio'].forEach(x=>$(x).dispatchEvent(new Event('input')));
+    wiz.querySelectorAll('.err').forEach(e=>e.textContent='');wiz.querySelectorAll('.bad').forEach(e=>e.classList.remove('bad'));
+  }
+  function temConteudo(r){return !!(r&&r.f&&(Object.values(r.f).some(v=>String(v||'').trim())||(r.fotos&&r.fotos.length)));}
+  let rascT=null;
+  function salvarRascunho(){
+    if(W.edit||W.rascPendente)return;   // com a oferta de "continuar" aberta, não sobrescreve o rascunho antigo
+    clearTimeout(rascT);rascT=setTimeout(()=>{const r=estadoForm();if(temConteudo(r))BD.set('rascunho',r);},400);
+  }
+  wiz.addEventListener('input',salvarRascunho);wiz.addEventListener('change',salvarRascunho);
+  function aplicarRascunho(r){
+    W.envioId=r.id||novoId();
+    CAMPOS.forEach(k=>{$(k).value=(r.f&&r.f[k])||'';});
+    $('aOk').checked=!!r.ok;$('mYt').dispatchEvent(new Event('input'));
+    W.fotos.forEach(f=>f.blob&&URL.revokeObjectURL(f.url));
+    W.fotos=(r.fotos||[]).map(b=>({blob:b,url:URL.createObjectURL(b)}));drawThumbs();
+    if(r.aFoto){W.aFoto={blob:r.aFoto,url:URL.createObjectURL(r.aFoto)};$('aFotoPh').innerHTML=`<img src="${W.aFoto.url}" alt="sua foto">`;$('aFotoPh').classList.add('has');}
+    if(r.pos){W.pos=r.pos;W.moved=true;W.restaurado=true;if(W.tm)setPos(r.pos.lat,r.pos.lng,true);}
+    if(isFinite(r.raioIdx)){$('tRaio').value=r.raioIdx;$('tRaioTxt').textContent=fmtM(raio());if(W.t)W.t.c.setRadius(raio());}
+    if(r.ficha&&r.ficha.length){$('fRows').innerHTML='';r.ficha.forEach(([a,b])=>fRow(a,b));}
+    if(r.perfil==='existe'&&r.artista){setPerfil('existe');escolherArtista(r.artista);}else setPerfil('novo');
+    if(val('mBairro'))W.bairroManual=true;
+    ['mHist','aBio'].forEach(x=>$(x).dispatchEvent(new Event('input')));
+  }
+  $('wRascSim').onclick=()=>{const r=W.rascPendente;W.rascPendente=null;$('wRasc').hidden=true;if(!r)return;aplicarRascunho(r);go(Math.min(Math.max(+r.step||1,1),LAST));toast('Tudo de volta, do jeito que você deixou.');};
+  $('wRascNao').onclick=async()=>{W.rascPendente=null;$('wRasc').hidden=true;await BD.del('rascunho');};
+
+  // o que vai para o site
+  function montarEnvio(lat,lng,d){
+    const existe=W.perfil==='existe'&&W.artista;
+    const o={envio_id:W.envioId,aSite:val('aSite'),lat,lng,raio:d.raio,ficha:JSON.stringify(d.ficha)};
+    (existe?['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aEmail']:['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aEmail','aCred']).forEach(k=>o[k]=val(k));
+    if(existe)o.artistaId=W.artista.id;
+    return {tipo:'inscricao',o,nome:val('mName'),fotos:W.fotos.filter(f=>f.blob).map(f=>f.blob),aFoto:(!existe&&W.aFoto&&W.aFoto.blob)?W.aFoto.blob:null};
+  }
+  function fdDe(it,extra){
+    const fd=new FormData();Object.entries(it.o).forEach(([k,v])=>fd.append(k,v));
+    it.fotos.forEach((b,i)=>fd.append('fotos[]',b,'foto-'+(i+1)+'.jpg'));if(it.aFoto)fd.append('aFoto',it.aFoto,'perfil.jpg');
+    if(extra)Object.entries(extra).forEach(([k,v])=>fd.append(k,v));return fd;
+  }
+  const AJAX=ENVIO?location.origin+'/wp-admin/admin-ajax.php?action=mve_guardar':null;
+  const espera=ms=>new Promise(r=>setTimeout(r,ms));
+  async function tentar(url,body){
+    try{
+      const r=await fetch(url,{method:'POST',body,credentials:'same-origin'});const txt=await r.text();let j=null;try{j=JSON.parse(txt);}catch(e){}
+      if(r.ok&&j&&j.ok)return {tipo:'ok',j};
+      if(j&&j.erro&&r.status>=400&&r.status<500&&![403,404,408,413].includes(r.status))return {tipo:'recusa',j,status:r.status};
+      console.warn('[erguer] '+url.replace(location.origin,'')+' respondeu',r.status,txt.slice(0,300));
+      return {tipo:'falha',status:r.status};
+    }catch(e){return {tipo:'falha',status:0};}
+  }
+  async function comRepeticao(url,corpo,n){
+    let u;for(let i=0;i<n;i++){u=await tentar(url,corpo());if(u.tipo!=='falha'||[403,404,413].includes(u.status))return u;if(i<n-1)await espera(i?4000:1500);}return u;
+  }
+  const resultado=u=>({estado:u.j.guardada?'guardado':(u.j.aguarda?'aguarda':'publicado'),j:u.j});
+  async function enviarInscricao(it){
+    if(navigator.onLine===false)return {estado:'pendente'};
+    // 1) caminho normal, com novas tentativas automáticas
+    let u=await comRepeticao(ENVIO,()=>fdDe(it),3);
+    if(u.tipo==='ok')return resultado(u);
+    if(u.tipo==='recusa')return {estado:'recusa',msg:u.j.erro};
+    // 2) plano B: outro caminho do site, com tudo junto
+    u=await comRepeticao(AJAX,()=>fdDe(it,{modo:'completo'}),2);
+    if(u.tipo==='ok')return resultado(u);
+    if(u.tipo==='recusa')return {estado:'recusa',msg:u.j.erro};
+    // 3) plano B: primeiro só o texto (leve), depois as fotos uma a uma
+    u=await comRepeticao(AJAX,()=>{const p=new URLSearchParams(it.o);p.append('modo','texto');return p;},2);
+    if(u.tipo!=='ok')return {estado:'pendente'};
+    const faltam=await enviarFotosSoltas(it);
+    return {estado:'guardado',fotosPendentes:faltam};
+  }
+  async function enviarFotosSoltas(it){
+    const resto=[];let perfil=null;
+    for(const b of it.fotos){const u=await comRepeticao(AJAX,()=>{const fd=new FormData();fd.append('modo','foto');fd.append('envio_id',it.o.envio_id);fd.append('foto',b,'foto.jpg');return fd;},2);if(u.tipo!=='ok')resto.push(b);}
+    if(it.aFoto){const u=await comRepeticao(AJAX,()=>{const fd=new FormData();fd.append('modo','foto');fd.append('envio_id',it.o.envio_id);fd.append('aFoto',it.aFoto,'perfil.jpg');return fd;},2);if(u.tipo!=='ok')perfil=it.aFoto;}
+    if(resto.length||perfil){await filaAdd({tipo:'fotos',o:{envio_id:it.o.envio_id},nome:it.nome,fotos:resto,aFoto:perfil});return true;}
+    await filaTirar(it.o.envio_id,'fotos');return false;
+  }
+  // fila do aparelho: o que não chegou é enviado sozinho quando a internet voltar
+  async function filaGet(){const f=await BD.get('fila');return Array.isArray(f)?f:[];}
+  async function filaAdd(x){const f=await filaGet();const i=f.findIndex(y=>y.tipo===x.tipo&&y.o.envio_id===x.o.envio_id);if(i>=0)f[i]=x;else f.push(x);return BD.set('fila',f);}
+  async function filaTirar(id,tipo){const f=await filaGet();return BD.set('fila',f.filter(y=>!(y.tipo===tipo&&y.o.envio_id===id)));}
+  let filaRodando=false;
+  async function processarFila(){
+    if(filaRodando||!ENVIO||navigator.onLine===false)return;filaRodando=true;
+    try{
+      for(const it of await filaGet()){
+        if(it.tipo==='inscricao'){
+          const r=await enviarInscricao(it);if(r.estado==='pendente')continue;
+          await filaTirar(it.o.envio_id,'inscricao');
+          if(r.estado==='recusa'){if(it.rasc&&!temConteudo(await BD.get('rascunho'))){it.rasc.id=novoId();await BD.set('rascunho',it.rasc);}toast('A inscrição “'+it.nome+'” precisa de um ajuste: '+r.msg+' Abra “Criar monumento” para continuar.',10000);}
+          else toast('Sua inscrição “'+it.nome+'” chegou ao site. Obrigado!',7000);
+        }else if(it.tipo==='fotos'){await enviarFotosSoltas(it);}
+      }
+    }finally{filaRodando=false;}
+  }
+  window.addEventListener('online',()=>setTimeout(processarFila,1500));
+  setTimeout(processarFila,3500);
+
+  function resumoEmail(it){
+    const o=it.o,lin=[];const add=(k,v)=>{if(v)lin.push(k+': '+v);};
+    add('Monumento',o.mName);add('Ano',o.mYear);add('Bairro / cidade',o.mBairro);add('Local',o.lat&&(o.lat+', '+o.lng+' · raio '+o.raio+' m'));
+    add('Vídeo (YouTube)',o.mYt);add('Vídeo (Google Drive)',o.mDrive);add('Autoria das fotos',o.mCred);add('História',o.mHist);
+    try{const f=JSON.parse(o.ficha||'[]');if(f.length)lin.push('Ficha técnica:\n'+f.map(x=>x.role+': '+(x.people||[]).join(', ')).join('\n'));}catch(e){}
+    if(o.artistaId)add('Artista (perfil já existente)',W.artista&&W.artista.nome);else{add('Artista',o.aNome);add('Cidade',o.aCidade);add('Minibio',o.aBio);add('Autoria da foto de perfil',o.aCred);}
+    add('E-mail',o.aEmail);
+    lin.push('','('+(it.fotos.length)+' foto(s) e a foto de perfil ficaram guardadas no meu aparelho e serão enviadas automaticamente pelo mapa.)','Código da inscrição: '+o.envio_id);
+    return 'mailto:monumentosvirtuais@gmail.com?subject='+encodeURIComponent('Inscrição de monumento: '+(o.mName||''))+'&body='+encodeURIComponent(lin.join('\n').slice(0,1800));
+  }
+  function mostrarFinal(estado,it,r){
+    W.last=null;W.aguarda=false;
+    if(estado==='guardado'){
+      $('okT').textContent='Recebemos sua inscrição';
+      $('okP').textContent='“'+it.nome+'” ficou guardada com segurança no site e a equipe vai publicá-la. Você recebe um e-mail quando estiver no ar.'+(r&&r.fotosPendentes?' Algumas fotos ainda estão terminando de chegar: elas seguem sozinhas quando você abrir o mapa de novo, com internet.':'');
+      $('okMail').hidden=true;
+    }else{
+      $('okT').textContent='Sua inscrição está guardada neste aparelho';
+      $('okP').textContent='Não conseguimos falar com o site agora. Nada se perdeu: “'+it.nome+'” vai ser enviada automaticamente assim que você abrir o mapa de novo com internet. Se preferir, mande também por e-mail.';
+      $('okMail').href=resumoEmail(it);$('okMail').hidden=false;
+    }
+    go('ok');
+    $('wBack').hidden=true;$('wNext').textContent='Fechar';
+  }
+
   // ---- ajuste pedido pela equipe: o mesmo formulário, já preenchido, aberto pelo link do e-mail
   const API=ENVIO?ENVIO.replace(/enviar$/,''):null;
+  // envia e devolve {ok,j,msg}; quando o servidor não responde em JSON, mostra o código do erro
+  async function postar(url,fd){
+    let r=null,txt='',j=null;
+    try{r=await fetch(url,{method:'POST',body:fd,credentials:'same-origin'});txt=await r.text();try{j=JSON.parse(txt);}catch(e){}}
+    catch(e){return {ok:false,msg:'Não deu para enviar agora: sem conexão com o site. Confira a internet e tente de novo.'};}
+    if(r.ok&&j&&j.ok)return {ok:true,j};
+    if(j&&j.erro)return {ok:false,j,msg:j.erro};
+    console.error('[erguer] resposta do servidor',r.status,txt.slice(0,400));
+    const porque={403:'o site recusou o envio',408:'o envio demorou demais',413:'as fotos ficaram grandes demais para enviar',429:'muitos envios seguidos',500:'erro no servidor',502:'o site está fora do ar',503:'o site está sobrecarregado',504:'o site demorou para responder'}[r.status]||'resposta inesperada do site';
+    return {ok:false,msg:'Não deu para enviar (erro '+r.status+': '+porque+'). Tente de novo em instantes; se continuar, avise a equipe com este código.'};
+  }
   async function sendAjuste(lat,lng){
     const d=draft(lat,lng),fd=new FormData();
     ['mYt','mDrive','mName','mYear','mBairro','mHist','mCred','aNome','aCidade','aBio','aCred'].forEach(k=>fd.append(k,val(k)));
@@ -1365,8 +1589,8 @@
     W.fotos.forEach((f,i)=>{if(f.existing)fd.append('manter[]',f.id);else fd.append('fotos[]',f.blob,'foto-'+(i+1)+'.jpg');});
     if(W.aFoto&&W.aFoto.blob)fd.append('aFoto',W.aFoto.blob,'perfil.jpg');
     $('wNext').disabled=true;$('wNext').textContent='Enviando…';let j=null;
-    try{const r=await fetch(API+'ajustar',{method:'POST',body:fd});j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw 0;}
-    catch(e){$('wNext').disabled=false;$('wNext').textContent='Enviar ajustes';toast((j&&j.erro)||'Não deu para enviar agora. Confira a internet e tente de novo.');return;}
+    const rs=await postar(API+'ajustar',fd);
+    if(!rs.ok){$('wNext').disabled=false;$('wNext').textContent='Enviar ajustes';toast(rs.msg,9000);return;}
     $('wNext').disabled=false;
     $('okT').textContent='Ajustes enviados';
     $('okP').textContent='A equipe dos Monumentos Virtuais vai conferir e publicar. Você recebe um e-mail quando estiver no ar. Se quiser mudar mais alguma coisa, é só abrir o mesmo link de novo.';

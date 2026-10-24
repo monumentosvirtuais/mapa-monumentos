@@ -1,7 +1,7 @@
 /* Monumentos Virtuais · Mapa Wi-Fi — funcionamento sem internet.
    Guarda o app, os pontos de Wi-Fi e o acervo no aparelho.
    O fundo de ruas é guardado só nas áreas que a pessoa já abriu (até TILE_MAX imagens). */
-const VERSION = 'mv-wifi-v10';
+const VERSION = 'mv-wifi-v11';
 const TILES = 'mv-tiles';
 const DATA = 'mv-data';
 const TILE_MAX = 2500;
