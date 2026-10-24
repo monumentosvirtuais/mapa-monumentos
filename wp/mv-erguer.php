@@ -698,6 +698,27 @@ function mve_token( $id, $acao ) {
 function mve_link_moderar( $id, $acao ) {
 	return add_query_arg( array( 'mv_moderar' => $acao, 'id' => $id, 't' => mve_token( $id, $acao ) ), home_url( '/' ) );
 }
+/** Prévia de um monumento ainda não publicado, sem precisar estar logado: só abre com a chave do e-mail. */
+function mve_link_previa( $id ) {
+	return add_query_arg( array( 'post_type' => 'mv3_monument', 'p' => $id, 'mv_previa' => mve_token( $id, 'previa' ) ), home_url( '/' ) );
+}
+add_filter( 'redirect_canonical', function ( $url ) { return empty( $_GET['mv_previa'] ) ? $url : false; } ); // a prévia fica no endereço com a chave
+add_filter( 'posts_results', function ( $posts, $q ) {
+	if ( empty( $_GET['mv_previa'] ) || ! $q->is_main_query() || 1 !== count( $posts ) ) { return $posts; }
+	$p = $posts[0];
+	if ( 'mv3_monument' === $p->post_type && in_array( $p->post_status, array( 'pending', 'draft' ), true )
+		&& hash_equals( mve_token( $p->ID, 'previa' ), sanitize_text_field( wp_unslash( $_GET['mv_previa'] ) ) ) ) {
+		$posts[0]->post_status = 'publish'; // só nesta visualização; nada muda no banco
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) { define( 'DONOTCACHEPAGE', true ); }
+		do_action( 'litespeed_control_set_nocache', 'prévia de monumento' );
+		add_action( 'send_headers', 'nocache_headers' );
+		add_filter( 'wp_robots', 'wp_robots_no_robots' );
+		add_action( 'wp_body_open', function () {
+			echo '<div style="position:sticky;top:0;z-index:99999;background:#C67033;color:#fff;font:600 14px/1.4 Arial,sans-serif;padding:10px 16px;text-align:center">Prévia: este monumento ainda não está publicado.</div>';
+		} );
+	}
+	return $posts;
+}, 10, 2 );
 function mve_btn( $txt, $url, $cheio = true ) {
 	$s = $cheio ? 'background:#C67033;color:#ffffff;border:1px solid #C67033' : 'background:#ffffff;color:#141210;border:1px solid #c9c2b8';
 	return '<a href="' . esc_url( $url ) . '" style="display:inline-block;margin:0 8px 8px 0;padding:13px 20px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none;' . $s . '">' . esc_html( $txt ) . '</a>';
@@ -760,7 +781,7 @@ function mve_email_inscrito( $mon, $modo ) {
 	$retrato = $v['retrato'] ? wp_get_attachment_image_url( $v['retrato'], 'thumbnail' ) : '';
 	$h  = '<p style="margin:0 0 16px;color:#7a726a;font-size:14px">por ' . $e( $v['anome'] ) . ' · ' . $e( $v['bairro'] ) . ( $v['ano'] ? ' · ' . $e( $v['ano'] ) : '' ) . '</p>';
 	$aguarda = ( 'confirmar' === $modo );
-	if ( $aguarda ) { $link = get_preview_post_link( $mon ); }
+	if ( $aguarda ) { $link = mve_link_previa( $mon ); }
 	$h .= mve_btn( $aguarda ? 'Ver como vai ficar' : 'Abrir o monumento para checar', $link );
 	$h .= '<p style="margin:2px 0 18px;font-size:12px;color:#7a726a;word-break:break-all">Link: <a href="' . esc_url( $link ) . '" style="color:#A35A27">' . $e( $link ) . '</a></p>';
 	if ( $aguarda ) {
