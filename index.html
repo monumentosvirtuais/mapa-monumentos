@@ -536,6 +536,8 @@
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/leaflet.markercluster.js"></script>
 <script>
+const nomes=p=>Array.isArray(p)?p.join(', '):String(p||''); // ficha: aceita lista ou texto
+
 (function(){
   "use strict";
 
@@ -742,7 +744,7 @@
   function fichaHtml(d){
     const f=(d._detail&&d._detail.ficha_tecnica)||d.ficha;
     if(!Array.isArray(f)||!f.length)return '';
-    return '<div class="ficha">'+f.slice(0,4).map(x=>`<div><small>${esc(x.role)}</small><span>${esc((x.people||[]).join(', '))}</span></div>`).join('')+'</div>';
+    return '<div class="ficha">'+f.slice(0,4).map(x=>`<div><small>${esc(x.role)}</small><span>${esc(nomes(x.people))}</span></div>`).join('')+'</div>';
   }
   function fillMonument(popup,d){
     if(d._detail||!d.slug)return;
@@ -1548,7 +1550,7 @@
     const o=it.o,lin=[];const add=(k,v)=>{if(v)lin.push(k+': '+v);};
     add('Monumento',o.mName);add('Ano',o.mYear);add('Bairro / cidade',o.mBairro);add('Local',o.lat&&(o.lat+', '+o.lng+' · raio '+o.raio+' m'));
     add('Vídeo (YouTube)',o.mYt);add('Vídeo (Google Drive)',o.mDrive);add('Autoria das fotos',o.mCred);add('História',o.mHist);
-    try{const f=JSON.parse(o.ficha||'[]');if(f.length)lin.push('Ficha técnica:\n'+f.map(x=>x.role+': '+(x.people||[]).join(', ')).join('\n'));}catch(e){}
+    try{const f=JSON.parse(o.ficha||'[]');if(f.length)lin.push('Ficha técnica:\n'+f.map(x=>x.role+': '+nomes(x.people)).join('\n'));}catch(e){}
     if(o.artistaId)add('Artista (perfil já existente)',W.artista&&W.artista.nome);else{add('Artista',o.aNome);add('Cidade',o.aCidade);add('Minibio',o.aBio);add('Autoria da foto de perfil',o.aCred);}
     add('E-mail',o.aEmail);
     lin.push('','('+(it.fotos.length)+' foto(s) e a foto de perfil ficaram guardadas no meu aparelho e serão enviadas automaticamente pelo mapa.)','Código da inscrição: '+o.envio_id);
@@ -1611,7 +1613,7 @@
     $('mName').value=j.nome||'';$('mYear').value=j.ano||'';$('mHist').value=j.historia||'';
     $('mBairro').value=j.bairro||'';W.bairroManual=true;W.pos={lat:+j.lat,lng:+j.lng};W.moved=true;
     const ri=RAIOS.indexOf(+j.raio);$('tRaio').value=ri<0?3:ri;$('tRaioTxt').textContent=fmtM(raio());
-    $('fRows').innerHTML='';(j.ficha||[]).forEach(f=>fRow(f.role,(f.people||[]).join(', ')));if(!$('fRows').children.length)fRow();
+    $('fRows').innerHTML='';(j.ficha||[]).forEach(f=>fRow(f.role,nomes(f.people)));if(!$('fRows').children.length)fRow();
     const a=j.artista||{};
     if(a.existente){setPerfil('existe');escolherArtista({id:0,nome:a.nome,cidade:a.cidade,foto:a.foto});$('aModo').hidden=true;const tb=$('aTrocar');if(tb)tb.remove();}
     $('aNome').value=a.nome||'';$('aCidade').value=a.cidade||'';$('aBio').value=a.bio||'';$('aCred').value=a.credito||'';

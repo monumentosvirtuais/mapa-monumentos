@@ -446,7 +446,13 @@ function mve_processar( $rid, $avisar_equipe = true ) {
 	$res = array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ), 'aguarda' => ( 'confirmar' === $modo ) );
 	mve_estado( $rid, 'publicada', array( '_mve_monumento' => $mon, '_mve_resultado' => $res, '_mve_motivo' => '' ) );
 	if ( $avisar_equipe ) {
-		$enviado = mve_email_inscrito( $mon, $modo );
+		// o aviso por e-mail nunca desfaz uma publicação: se ele falhar, fica registrado e o monumento continua no ar
+		try {
+			$enviado = mve_email_inscrito( $mon, $modo );
+		} catch ( Throwable $t ) {
+			$enviado = false;
+			mve_log( 'E-MAIL DO MONUMENTO #' . $mon . ' FALHOU (monumento publicado normalmente): ' . $t->getMessage() . ' em ' . basename( $t->getFile() ) . ':' . $t->getLine() );
+		}
 		update_post_meta( $mon, '_mve_email_enviado', $enviado ? '1' : '0' );
 	}
 	return $res;
@@ -504,7 +510,7 @@ function mve_email_guardada( $rid ) {
 	$art   = (int) $g( 'artistaId' ) ? 'perfil já existente: ' . get_the_title( (int) $g( 'artistaId' ) ) : $g( 'aNome' ) . ' (perfil novo)';
 	$ficha = '';
 	$fj    = json_decode( $g( 'ficha' ), true );
-	if ( is_array( $fj ) ) { foreach ( $fj as $f ) { if ( ! empty( $f['role'] ) ) { $ficha .= $e( $f['role'] ) . ': ' . $e( implode( ', ', (array) $f['people'] ) ) . '<br>'; } } }
+	if ( is_array( $fj ) ) { foreach ( $fj as $f ) { if ( ! empty( $f['role'] ) ) { $ficha .= $e( $f['role'] ) . ': ' . $e( mve_pessoas( $f['people'] ?? '' ) ) . '<br>'; } } }
 	$h  = mve_caixa( '<b>Nada se perdeu.</b> Esta inscrição chegou e está guardada no site, mas ainda <b>não foi publicada</b>.<br><span style="font-size:13px">Motivo: ' . $e( (string) get_post_meta( $rid, '_mve_motivo', true ) ) . '</span>' );
 	$h .= mve_btn( 'Restaurar e publicar', mve_link_moderar( $rid, 'restaurar' ) ) . mve_btn( 'Ver no WordPress', admin_url( 'post.php?post=' . $rid . '&action=edit' ), false );
 	$h .= '<table style="width:100%;border-collapse:collapse;margin-top:14px;border-top:1px solid #eee7dd">';
@@ -723,10 +729,14 @@ function mve_miniaturas( $ids ) {
 	}
 	return $o;
 }
+/** Nomes de uma função da ficha: o plugin do site devolve texto; aceita lista também. */
+function mve_pessoas( $p ) {
+	return is_array( $p ) ? implode( ', ', array_map( 'strval', $p ) ) : (string) $p;
+}
 function mve_ficha_html( $raw ) {
 	$o = '<table style="border-collapse:collapse">';
 	foreach ( ( function_exists( 'mv3_parse_ficha' ) ? mv3_parse_ficha( $raw ) : array() ) as $f ) {
-		$o .= '<tr><td style="padding:5px 14px 5px 0;color:#7a726a;font-size:13px;vertical-align:top">' . esc_html( $f['role'] ) . '</td><td style="padding:5px 0;font-size:13px">' . esc_html( implode( ', ', $f['people'] ) ) . '</td></tr>';
+		$o .= '<tr><td style="padding:5px 14px 5px 0;color:#7a726a;font-size:13px;vertical-align:top">' . esc_html( $f['role'] ) . '</td><td style="padding:5px 0;font-size:13px">' . esc_html( mve_pessoas( $f['people'] ?? '' ) ) . '</td></tr>';
 	}
 	return $o . '</table>';
 }
@@ -939,7 +949,9 @@ function mve_pagina_restaurar( $rec, $t ) {
 		mve_pagina( 'Falta um dado', '<p>' . $nome . ' continua guardada.</p><p>' . esc_html( isset( $d['erro'] ) ? $d['erro'] : '' ) . '</p><p style="font-size:14px">Corrija no WordPress, em <b>Inscrições do mapa</b>, ou responda o e-mail para falar com a pessoa.</p>' );
 	}
 	$mon = (int) $res['id'];
-	if ( empty( $res['aguarda'] ) ) { mve_email_no_ar( $mon ); } else { mve_email_inscrito( $mon, 'confirmar' ); }
+	try {
+		if ( empty( $res['aguarda'] ) ) { mve_email_no_ar( $mon ); } else { mve_email_inscrito( $mon, 'confirmar' ); }
+	} catch ( Throwable $t ) { mve_log( 'E-MAIL APÓS RESTAURAR #' . $mon . ' FALHOU: ' . $t->getMessage() ); }
 	mve_pagina( 'Publicado', '<p>' . $nome . ' está no ar' . ( empty( $res['aguarda'] ) ? ' e a pessoa recebeu um e-mail avisando' : ' (aguardando a confirmação do perfil de artista: veja o e-mail "confirmar artista")' ) . '.</p><p><a href="' . esc_url( get_permalink( $mon ) ) . '" style="color:#E3A46F">Ver o monumento</a></p>' );
 }
 
