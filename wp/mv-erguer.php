@@ -15,7 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! defined( 'MVE_PARA' ) ) { define( 'MVE_PARA', 'monumentosvirtuais@gmail.com' ); }   // quem recebe os avisos
-if ( ! defined( 'MVE_LIMITE_HORA' ) ) { define( 'MVE_LIMITE_HORA', 3 ); }                    // envios por aparelho/IP por hora
+if ( ! defined( 'MVE_LIMITE_HORA' ) ) { define( 'MVE_LIMITE_HORA', 12 ); }                   // envios por rede (IP) por hora: oficinas usam o mesmo Wi-Fi
 define( 'MVE_RAIOS', array( 50, 100, 200, 300, 500, 750, 1000, 1500, 2000 ) );
 define( 'MVE_MAX_FOTOS', 8 );
 define( 'MVE_MAX_BYTES', 10 * 1024 * 1024 );
