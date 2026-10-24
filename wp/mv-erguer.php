@@ -598,7 +598,7 @@ function mve_editar( WP_REST_Request $r ) {
 	if ( ! mve_link_edicao_ok( $mon, $r->get_param( 'k' ) ) ) { return mve_erro( 'Este link de ajuste não vale mais. Responda o e-mail da equipe para pedir um novo.', 403 ); }
 	$p = get_post_meta( $mon, '_mve_pendente', true );
 	$v = is_array( $p ) ? $p : mve_atual( $mon );
-	$ficha = function_exists( 'mv3_parse_ficha' ) ? mv3_parse_ficha( $v['ficha'] ) : array();
+	$ficha = mve_ficha_lista( $v['ficha'] );
 	$fotos = array();
 	foreach ( (array) $v['fotos'] as $f ) { $u = wp_get_attachment_image_url( $f, 'large' ); if ( $u ) { $fotos[] = array( 'id' => (int) $f, 'url' => $u ); } }
 	return array(
@@ -733,9 +733,21 @@ function mve_miniaturas( $ids ) {
 function mve_pessoas( $p ) {
 	return is_array( $p ) ? implode( ', ', array_map( 'strval', $p ) ) : (string) $p;
 }
+/** Lê a ficha gravada ("Função: nomes" por linha) sem depender do formato interno do plugin do acervo. */
+function mve_ficha_lista( $raw ) {
+	$o = array();
+	foreach ( preg_split( '/\r\n|\n|\r/', (string) $raw ) as $l ) {
+		$l = trim( $l );
+		if ( '' === $l || false === strpos( $l, ':' ) ) { continue; }
+		list( $role, $p ) = array_map( 'trim', explode( ':', $l, 2 ) );
+		if ( '' === $role ) { continue; }
+		$o[] = array( 'role' => $role, 'people' => array_values( array_filter( array_map( 'trim', explode( ',', $p ) ), 'strlen' ) ) );
+	}
+	return $o;
+}
 function mve_ficha_html( $raw ) {
 	$o = '<table style="border-collapse:collapse">';
-	foreach ( ( function_exists( 'mv3_parse_ficha' ) ? mv3_parse_ficha( $raw ) : array() ) as $f ) {
+	foreach ( mve_ficha_lista( $raw ) as $f ) {
 		$o .= '<tr><td style="padding:5px 14px 5px 0;color:#7a726a;font-size:13px;vertical-align:top">' . esc_html( $f['role'] ) . '</td><td style="padding:5px 0;font-size:13px">' . esc_html( mve_pessoas( $f['people'] ?? '' ) ) . '</td></tr>';
 	}
 	return $o . '</table>';
