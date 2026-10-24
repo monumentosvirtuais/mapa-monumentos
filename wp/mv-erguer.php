@@ -1047,18 +1047,92 @@ add_filter( 'the_content', function ( $c ) {
 	$topo  = '<p class="mve-selo" style="display:inline-block;margin:0 0 14px;padding:4px 10px;border-radius:999px;border:1px solid #2F4659;color:#9EC3E6;font-size:12px;letter-spacing:.04em">inscrito pela comunidade</p>';
 	$fotos = (array) get_post_meta( $id, '_mve_fotos', true );
 	$g = '';
+	$fotos = array_values( array_filter( array_map( 'intval', $fotos ), 'wp_get_attachment_image_url' ) );
 	if ( $fotos ) {
-		$g .= '<div class="mve-fotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:22px 0 6px">';
-		foreach ( $fotos as $f ) {
-			$u = wp_get_attachment_image_url( $f, 'large' );
-			if ( $u ) { $g .= '<a href="' . esc_url( $u ) . '">' . wp_get_attachment_image( $f, 'medium', false, array( 'style' => 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block', 'loading' => 'lazy' ) ) . '</a>'; }
+		$n    = count( $fotos );
+		$cred = get_post_meta( $id, '_mve_fotos_credito', true );
+		$g   .= $n > 1 ? '<p class="mve-fotos-tit" style="margin:26px 0 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.75">Galeria · ' . $n . ' fotos</p>' : '';
+		$g   .= '<div class="mve-fotos" data-cred="' . esc_attr( $cred ? 'fotos: ' . $cred : '' ) . '" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:' . ( $n > 1 ? '10px' : '22px' ) . ' 0 6px">';
+		foreach ( $fotos as $i => $f ) {
+			$u   = wp_get_attachment_image_url( $f, 'large' );
+			$rot = $n > 1 ? 'Abrir a galeria na foto ' . ( $i + 1 ) . ' de ' . $n : 'Ampliar a foto';
+			$g  .= '<a href="' . esc_url( $u ) . '" aria-label="' . esc_attr( $rot ) . '" style="display:block;cursor:zoom-in">' . wp_get_attachment_image( $f, 'medium', false, array( 'style' => 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block', 'loading' => 'lazy', 'alt' => '' ) ) . '</a>';
 		}
 		$g .= '</div>';
-		$cred = get_post_meta( $id, '_mve_fotos_credito', true );
+		add_action( 'wp_footer', 'mve_galeria_script' );
 		if ( $cred ) { $g .= '<p class="mve-fotos-cred" style="margin:0 0 10px;font-size:12px;opacity:.7">fotos: ' . esc_html( $cred ) . '</p>'; }
 	}
 	return $topo . $c . $g;
 }, 20 );
+
+/** Galeria das fotos do monumento: abre por cima da página, com setas, contador e X para fechar. */
+function mve_galeria_script() {
+	static $feito = false;
+	if ( $feito ) { return; }
+	$feito = true;
+	?>
+<style id="mve-galeria-css">
+.mve-lb{position:fixed;inset:0;z-index:100000;background:rgba(8,8,8,.97);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;touch-action:pan-y}
+.mve-lb.on{opacity:1}
+.mve-lb figure{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 72px 18px;box-sizing:border-box;width:100%;height:100%}
+.mve-lb img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);border-radius:6px;user-select:none;-webkit-user-drag:none}
+.mve-lb figcaption{color:#cfc7bd;font:13px/1.4 Arial,Helvetica,sans-serif;margin-top:12px;text-align:center}
+.mve-lb button{position:absolute;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:999px;border:1px solid rgba(242,237,230,.28);background:rgba(20,18,16,.72);color:#F2EDE6;cursor:pointer;padding:0;font:400 26px/1 Arial,sans-serif}
+.mve-lb button:hover,.mve-lb button:focus-visible{border-color:#C67033;background:#C67033;outline:none}
+.mve-lb .x{top:12px;right:12px}
+.mve-lb .ant{left:12px;top:50%;margin-top:-24px}
+.mve-lb .prox{right:12px;top:50%;margin-top:-24px}
+.mve-lb .cont{position:absolute;top:24px;left:20px;color:#F2EDE6;font:600 13px/1 Arial,sans-serif;letter-spacing:.08em}
+@media (max-width:640px){.mve-lb figure{padding:64px 10px 78px}.mve-lb img{max-height:calc(100vh - 180px);max-height:calc(100dvh - 180px)}.mve-lb .ant,.mve-lb .prox{top:auto;bottom:14px;margin:0}}
+</style>
+<script id="mve-galeria-js">
+(function(){
+  var grade = document.querySelectorAll('.mve-fotos');
+  Array.prototype.forEach.call(grade, function(g){
+    var links = Array.prototype.slice.call(g.querySelectorAll('a'));
+    var cred = g.getAttribute('data-cred') || '';
+    links.forEach(function(a, i){ a.addEventListener('click', function(e){ e.preventDefault(); abrir(links, i, cred, a); }); });
+  });
+  function abrir(links, i, cred, origem){
+    var n = links.length, x0 = null, antes = document.documentElement.style.overflow;
+    var lb = document.createElement('div');
+    lb.className = 'mve-lb'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.setAttribute('aria-label', n > 1 ? 'Galeria de fotos' : 'Foto ampliada');
+    lb.innerHTML = '<figure><img alt=""><figcaption></figcaption></figure>'
+      + '<button type="button" class="x" aria-label="Fechar">\u00d7</button>'
+      + (n > 1 ? '<span class="cont" aria-live="polite"></span><button type="button" class="ant" aria-label="Foto anterior">\u2039</button><button type="button" class="prox" aria-label="Pr\u00f3xima foto">\u203a</button>' : '');
+    var img = lb.querySelector('img'), cap = lb.querySelector('figcaption'), cont = lb.querySelector('.cont');
+    function mostrar(k){
+      i = (k + n) % n;
+      img.src = links[i].href;
+      if (cont) cont.textContent = (i + 1) + ' / ' + n;
+      cap.textContent = cred; cap.style.display = cred ? '' : 'none';
+      if (n > 1) { [i + 1, i - 1].forEach(function(j){ var p = new Image(); p.src = links[(j + n) % n].href; }); }
+    }
+    function fechar(){
+      document.removeEventListener('keydown', tecla);
+      document.documentElement.style.overflow = antes;
+      lb.remove(); try { origem.focus(); } catch (e) {}
+    }
+    function tecla(e){
+      if (e.key === 'Escape') fechar();
+      else if (n > 1 && e.key === 'ArrowRight') mostrar(i + 1);
+      else if (n > 1 && e.key === 'ArrowLeft') mostrar(i - 1);
+    }
+    lb.querySelector('.x').onclick = fechar;
+    if (n > 1) { lb.querySelector('.ant').onclick = function(){ mostrar(i - 1); }; lb.querySelector('.prox').onclick = function(){ mostrar(i + 1); }; }
+    lb.addEventListener('click', function(e){ if (e.target === lb || e.target.tagName === 'FIGURE') fechar(); });
+    lb.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', function(e){ if (x0 === null || n < 2) return; var d = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(d) > 45) mostrar(d < 0 ? i + 1 : i - 1); });
+    document.addEventListener('keydown', tecla);
+    document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(lb); mostrar(i);
+    requestAnimationFrame(function(){ lb.classList.add('on'); });
+    lb.querySelector('.x').focus();
+  }
+})();
+</script>
+	<?php
+}
 
 /* ================================================================== */
 /* 6. Números que se atualizam sozinhos: [mve_contagem tipo="monumentos|artistas|pontos"]   */
