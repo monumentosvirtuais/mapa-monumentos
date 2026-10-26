@@ -20,6 +20,13 @@ define( 'MVE_RAIOS', array( 50, 100, 200, 300, 500, 750, 1000, 1500, 2000 ) );
 define( 'MVE_MAX_FOTOS', 8 );
 define( 'MVE_MAX_BYTES', 10 * 1024 * 1024 );
 define( 'MVE_LINK_DIAS', 30 ); // validade do link de ajuste enviado à pessoa
+require_once __DIR__ . '/mve-qr.php'; // QR arte de cada monumento
+
+/** Gera o QR de um monumento publicado; nunca atrapalha a publicação. */
+function mve_qr_seguro( $mon ) {
+	if ( 'publish' !== get_post_status( $mon ) || ! empty( $_GET['mv_previa'] ) ) { return null; }
+	try { return mve_qr_gerar( $mon ); } catch ( Throwable $t ) { mve_log( 'QR do monumento #' . $mon . ' falhou: ' . $t->getMessage() ); return null; }
+}
 
 /* ================================================================== */
 /* Utilitários                                                          */
@@ -445,6 +452,7 @@ function mve_processar( $rid, $avisar_equipe = true ) {
 	}
 	$res = array( 'ok' => true, 'id' => $mon, 'link' => get_permalink( $mon ), 'artista' => get_permalink( $artista ), 'aguarda' => ( 'confirmar' === $modo ) );
 	mve_estado( $rid, 'publicada', array( '_mve_monumento' => $mon, '_mve_resultado' => $res, '_mve_motivo' => '' ) );
+	mve_qr_seguro( $mon );
 	if ( $avisar_equipe ) {
 		// o aviso por e-mail nunca desfaz uma publicação: se ele falhar, fica registrado e o monumento continua no ar
 		try {
@@ -914,6 +922,7 @@ add_action( 'template_redirect', function () {
 		wp_update_post( array( 'ID' => $id, 'post_status' => 'publish' ) );
 		if ( $art && ! get_post_meta( $art, '_mve_email', true ) ) { update_post_meta( $art, '_mve_email', strtolower( $email ) ); }
 		delete_post_meta( $id, '_mve_aguarda_vinculo' );
+		mve_qr_seguro( $id );
 		mve_email_no_ar( $id );
 		mve_pagina( 'Publicado', '<p>' . $nome . ' está no ar, na lista de obras de ' . esc_html( get_the_title( $art ) ) . '. Avisamos ' . esc_html( $email ) . '.</p>' . $ver );
 	}
@@ -1062,7 +1071,8 @@ add_filter( 'the_content', function ( $c ) {
 		add_action( 'wp_footer', 'mve_galeria_script' );
 		if ( $cred ) { $g .= '<p class="mve-fotos-cred" style="margin:0 0 10px;font-size:12px;opacity:.7">fotos: ' . esc_html( $cred ) . '</p>'; }
 	}
-	return $topo . $c . $g;
+	mve_qr_seguro( $id ); // gera se ainda não existe (ou se a foto/link mudou)
+	return $topo . $c . $g . mve_qr_html( $id );
 }, 20 );
 
 /** Galeria das fotos do monumento: abre por cima da página, com setas, contador e X para fechar. */
