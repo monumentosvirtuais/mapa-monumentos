@@ -118,6 +118,16 @@ function mve_qr_desenhar( $url, $modelo, $px, $foto = '' ) {
 			$cor[ $y ][ $x ] = array( $r, $gg, $b ); $lum[ $y ][ $x ] = 0.299 * $r + 0.587 * $gg + 0.114 * $b;
 		} }
 		imagedestroy( $ph );
+		// níveis automáticos: foto escura ou lavada ganha contraste antes do pontilhado
+		$ord = array(); foreach ( $lum as $lin ) { foreach ( $lin as $v ) { $ord[] = $v; } } sort( $ord );
+		$lo = $ord[ (int) ( count( $ord ) * .04 ) ]; $hi = $ord[ (int) ( count( $ord ) * .96 ) - 1 ];
+		if ( $hi - $lo > 20 ) {
+			$k = 255 / ( $hi - $lo );
+			for ( $y = 0; $y < $g; $y++ ) { for ( $x = 0; $x < $g; $x++ ) {
+				$lum[ $y ][ $x ] = 255 * pow( max( 0, min( 1, ( $lum[ $y ][ $x ] - $lo ) * $k / 255 ) ), 0.85 );
+				foreach ( array( 0, 1, 2 ) as $ci ) { $cor[ $y ][ $x ][ $ci ] = max( 0, min( 255, ( $cor[ $y ][ $x ][ $ci ] - $lo ) * $k ) ); }
+			} }
+		}
 		$pont = array();
 		for ( $y = 0; $y < $g; $y++ ) { for ( $x = 0; $x < $g; $x++ ) {
 			$v = $lum[ $y ][ $x ]; $novo = $v < 128 ? 0 : 255; $pont[ $y ][ $x ] = 0 === $novo; $e = $v - $novo;
