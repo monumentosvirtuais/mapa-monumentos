@@ -33,7 +33,34 @@ const MVE_QR_LARANJA = array( 198, 112, 51 );
 /** Endereço que o QR abre. O link curto do acervo (/mv/q/…) entra aqui quando existir. */
 function mve_qr_link( $mon ) {
 	$curto = apply_filters( 'mve_qr_link', '', $mon );
+	if ( ! $curto && function_exists( 'mv3_qr_codigo_do_post' ) ) {
+		$cod = (string) mv3_qr_codigo_do_post( $mon );   // o mesmo código dos adesivos já impressos
+		if ( '' !== $cod ) { $curto = home_url( '/mv/q/' . $cod ); }
+	}
 	return $curto ? $curto : get_permalink( $mon );
+}
+
+/** URL do QR simples que o plugin do acervo mostra hoje (para trocar pelo QR com foto). */
+function mve_qr_url_plugin( $mon ) {
+	if ( ! function_exists( 'mv3_qr_url' ) ) { return ''; }
+	$u = (string) mv3_qr_url( $mon );
+	return false !== strpos( $u, 'api.qrserver.com' ) ? $u : '';   // QR feito à mão no admin fica como está
+}
+
+/** Capa do vídeo no YouTube, guardada no site, para monumentos sem foto. */
+function mve_qr_capa_youtube( $mon ) {
+	$yt = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) get_post_meta( $mon, '_mv3_ytid', true ) );
+	if ( '' === $yt ) { return ''; }
+	$up = wp_get_upload_dir(); $dir = trailingslashit( $up['basedir'] ) . 'mv-qr/capas'; $f = "$dir/$yt.jpg";
+	if ( is_file( $f ) ) { return $f; }
+	wp_mkdir_p( $dir );
+	foreach ( array( 'maxresdefault', 'hqdefault' ) as $t ) {
+		$r = wp_remote_get( "https://img.youtube.com/vi/$yt/$t.jpg", array( 'timeout' => 12 ) );
+		if ( is_wp_error( $r ) || 200 !== wp_remote_retrieve_response_code( $r ) ) { continue; }
+		$b = wp_remote_retrieve_body( $r ); $info = @getimagesizefromstring( $b );
+		if ( $info && $info[0] >= 400 ) { file_put_contents( $f, $b ); return $f; }
+	}
+	return '';
 }
 
 /** Matriz do QR (nível de correção alto, sem margem). */
@@ -187,6 +214,7 @@ function mve_qr_fotos_do_monumento( $mon ) {
 		if ( ! $f || ! is_file( $f ) ) { $f = (string) get_attached_file( $id ); }
 		if ( $f && is_file( $f ) ) { $o[ $id ] = $f; }
 	}
+	if ( count( $o ) < 2 ) { $c = mve_qr_capa_youtube( $mon ); if ( $c ) { $o[ 'yt' ] = $c; } } // capa do vídeo como mais uma opção
 	return $o;
 }
 
@@ -240,6 +268,27 @@ function mve_qr_gerar( $mon, $forcar = false ) {
 	update_post_meta( $mon, '_mve_qr', $meta );
 	return $meta;
 }
+
+/**
+ * Em toda página de monumento: o QR simples do plugin dá lugar ao QR com foto
+ * (mesmo código /mv/q/…, então adesivos impressos continuam valendo).
+ */
+add_action( 'template_redirect', function () {
+	if ( ! is_singular( 'mv3_monument' ) || ! empty( $_GET['mv_previa'] ) ) { return; }
+	$mon = get_queried_object_id();
+	$velho = mve_qr_url_plugin( $mon );
+	if ( '' === $velho ) { return; }
+	$q = function_exists( 'mve_qr_seguro' ) ? mve_qr_seguro( $mon ) : null;
+	if ( ! is_array( $q ) || empty( $q['url'] ) ) { return; }
+	ob_start( function ( $html ) use ( $velho, $q ) {
+		$formas = array_unique( array( $velho, esc_url( $velho ), str_replace( '&', '&amp;', $velho ), str_replace( '&', '&#038;', $velho ) ) );
+		$novo = str_replace( $formas, esc_url( $q['url'] ), $html, $n );
+		if ( ! $n ) { return $html; }
+		// link para imprimir logo depois da imagem
+		$link = '<a class="mve-qr-baixar" href="' . esc_url( $q['url_impressao'] ) . '" download style="display:block;margin:10px auto 0;font-size:13px;color:#E3A46F;text-align:center">Baixar em alta para imprimir</a>';
+		return preg_replace( '#(<img[^>]+' . preg_quote( esc_url( $q['url'] ), '#' ) . '[^>]*>)#', '$1' . $link, $novo, 1 );
+	} );
+}, 20 );
 
 /** Bloco da página: QR + "escaneie para acessar" + baixar para imprimir. */
 function mve_qr_html( $mon ) {

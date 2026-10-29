@@ -3,6 +3,7 @@
  * QR arte dos monumentos. Rode na pasta public_html:
  *   wp eval-file mapa-wifi/tools/qr.php gerar 471 424     → gera (ou refaz) o QR desses monumentos
  *   wp eval-file mapa-wifi/tools/qr.php comunidade        → gera para todos os monumentos inscritos pelo mapa
+ *   wp eval-file mapa-wifi/tools/qr.php todos             → gera para todos os monumentos publicados (acervo inteiro)
  *   wp eval-file mapa-wifi/tools/qr.php foto 424 3        → prefere a 3ª foto da galeria para o QR (e refaz)
  *   wp eval-file mapa-wifi/tools/qr.php ver 471           → mostra o que está guardado
  */
@@ -15,6 +16,10 @@ if ( 'foto' === $acao ) {
 	update_post_meta( $mon, '_mve_qr_foto', $ids[ $pos - 1 ] );
 	WP_CLI::log( "Foto $pos escolhida para o QR de " . get_the_title( $mon ) . '.' );
 	$args = array( $mon ); $acao = 'gerar';
+}
+if ( 'todos' === $acao ) {
+	$args = get_posts( array( 'post_type' => 'mv3_monument', 'post_status' => 'publish', 'numberposts' => -1, 'fields' => 'ids' ) );
+	$acao = 'gerar';
 }
 if ( 'comunidade' === $acao ) {
 	$args = get_posts( array( 'post_type' => 'mv3_monument', 'post_status' => 'publish', 'numberposts' => -1, 'fields' => 'ids', 'meta_key' => '_mve_comunidade', 'meta_value' => '1' ) );
@@ -29,8 +34,8 @@ foreach ( $ids as $id ) {
 	if ( ! is_array( $q ) ) { WP_CLI::warning( "#$id " . get_the_title( $id ) . ': sem QR' . ( 'gerar' === $acao ? ' (veja o registro de erros)' : '' ) ); continue; }
 	$fotos = array_values( array_filter( array_map( 'intval', (array) get_post_meta( $id, '_mve_fotos', true ) ) ) );
 	$pos   = array_search( (int) $q['foto'], $fotos, true );
-	$como  = 'foto' === $q['modelo'] ? 'QR com a foto ' . ( false !== $pos ? $pos + 1 : '?' ) . ' de ' . count( $fotos ) : 'QR desenhado' . ( ! empty( $q['fotos_testadas'] ) ? ' (nenhuma das ' . $q['fotos_testadas'] . ' fotos deu leitura segura)' : '' );
+	$como  = 'foto' === $q['modelo'] ? ( 'yt' === (string) $q['foto'] ? 'QR com a capa do vídeo' : 'QR com a foto ' . ( false !== $pos ? $pos + 1 : '1' ) . ( $fotos ? ' de ' . count( $fotos ) : '' ) ) : 'QR desenhado' . ( ! empty( $q['fotos_testadas'] ) ? ' (nenhuma das ' . $q['fotos_testadas'] . ' fotos deu leitura segura)' : '' );
 	WP_CLI::success( sprintf( '#%d %s · %s · %s KB%s', $id, get_the_title( $id ), $como, round( filesize( $q['arquivo'] ) / 1024 ), 'gerar' === $acao ? sprintf( ' (%.1fs)', microtime( true ) - $t ) : '' ) );
 	WP_CLI::log( '   QR: ' . $q['url'] );
-	WP_CLI::log( '   abre: ' . $q['link'] . ' · impressão: ' . $q['url_impressao'] );
+	WP_CLI::log( '   abre: ' . $q['link'] . ( mve_qr_url_plugin( $id ) ? ' (substitui o QR simples do acervo)' : '' ) . ' · impressão: ' . $q['url_impressao'] );
 }

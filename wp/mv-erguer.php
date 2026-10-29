@@ -1072,7 +1072,7 @@ add_filter( 'the_content', function ( $c ) {
 		if ( $cred ) { $g .= '<p class="mve-fotos-cred" style="margin:0 0 10px;font-size:12px;opacity:.7">fotos: ' . esc_html( $cred ) . '</p>'; }
 	}
 	mve_qr_seguro( $id ); // gera se ainda não existe (ou se a foto/link mudou)
-	return $topo . $c . $g . mve_qr_html( $id );
+	return $topo . $c . $g . ( mve_qr_url_plugin( $id ) ? '' : mve_qr_html( $id ) ); // se o plugin já mostra um QR, ele é trocado pelo QR com foto
 }, 20 );
 
 /** Galeria das fotos do monumento: abre por cima da página, com setas, contador e X para fechar. */
