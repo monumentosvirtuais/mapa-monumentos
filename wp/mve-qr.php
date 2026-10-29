@@ -164,47 +164,57 @@ function mve_qr_reduz( $im, $lado ) {
 	return $d;
 }
 
-/** Arquivo da foto usada no QR: a primeira foto do monumento (ou a imagem destacada). */
-function mve_qr_foto_do_monumento( $mon ) {
+/** Fotos candidatas, na ordem: a escolhida pela equipe (_mve_qr_foto), depois as do monumento. */
+function mve_qr_fotos_do_monumento( $mon ) {
 	$ids = array_filter( array_map( 'intval', (array) get_post_meta( $mon, '_mve_fotos', true ) ) );
-	$id  = $ids ? reset( $ids ) : (int) get_post_thumbnail_id( $mon );
-	if ( ! $id ) { return array( 0, '' ); }
-	$u = image_get_intermediate_size( $id, 'large' );
-	$up = wp_get_upload_dir();
-	$f = ( $u && ! empty( $u['path'] ) ) ? trailingslashit( $up['basedir'] ) . $u['path'] : get_attached_file( $id );
-	return array( $id, $f && is_file( $f ) ? $f : (string) get_attached_file( $id ) );
+	if ( ! $ids && get_post_thumbnail_id( $mon ) ) { $ids = array( (int) get_post_thumbnail_id( $mon ) ); }
+	$pref = (int) get_post_meta( $mon, '_mve_qr_foto', true );
+	if ( $pref && in_array( $pref, $ids, true ) ) { $ids = array_merge( array( $pref ), array_diff( $ids, array( $pref ) ) ); }
+	$up = wp_get_upload_dir(); $o = array();
+	foreach ( array_slice( array_values( $ids ), 0, 8 ) as $id ) {
+		$u = image_get_intermediate_size( $id, 'large' );
+		$f = ( $u && ! empty( $u['path'] ) ) ? trailingslashit( $up['basedir'] ) . $u['path'] : '';
+		if ( ! $f || ! is_file( $f ) ) { $f = (string) get_attached_file( $id ); }
+		if ( $f && is_file( $f ) ) { $o[ $id ] = $f; }
+	}
+	return $o;
 }
 
 /**
- * Gera (ou regenera) o QR do monumento. Guarda em uploads/mv-qr/ e na meta _mve_qr.
- * Devolve a meta ou null.
+ * Gera (ou regenera) o QR do monumento. Tenta cada foto até uma render um código legível;
+ * se nenhuma render, usa o QR desenhado. Guarda em uploads/mv-qr/ e na meta _mve_qr.
  */
 function mve_qr_gerar( $mon, $forcar = false ) {
 	if ( ! function_exists( 'imagecreatetruecolor' ) ) { return null; }
-	$url = mve_qr_link( $mon );
-	list( $fid, $foto ) = mve_qr_foto_do_monumento( $mon );
+	$url   = mve_qr_link( $mon );
+	$fotos = mve_qr_fotos_do_monumento( $mon );
+	$assin = md5( $url . '|' . implode( ',', array_keys( $fotos ) ) . '|v2' );
 	$atual = get_post_meta( $mon, '_mve_qr', true );
-	if ( ! $forcar && is_array( $atual ) && $atual['link'] === $url && (int) $atual['foto'] === $fid && ! empty( $atual['arquivo'] ) && is_file( $atual['arquivo'] ) ) { return $atual; }
+	if ( ! $forcar && is_array( $atual ) && ( $atual['assinatura'] ?? '' ) === $assin && ! empty( $atual['arquivo'] ) && is_file( $atual['arquivo'] ) ) { return $atual; }
 
 	$up  = wp_get_upload_dir();
 	$dir = trailingslashit( $up['basedir'] ) . 'mv-qr'; wp_mkdir_p( $dir );
-	$nome = $mon . '-' . substr( md5( $url . '|' . $fid . '|v1' ), 0, 8 );
-	$ext  = function_exists( 'imagewebp' ) ? 'webp' : 'jpg';
-	$modelo = '';
-	foreach ( ( $foto ? array( 'foto', 'desenho' ) : array( 'desenho' ) ) as $tenta ) {
+	$ext = function_exists( 'imagewebp' ) ? 'webp' : 'jpg';
+	$tentativas = array();
+	foreach ( $fotos as $fid => $f ) { $tentativas[] = array( 'foto', $fid, $f ); }
+	$tentativas[] = array( 'desenho', 0, '' );
+	$modelo = ''; $fid = 0; $nome = ''; $testadas = 0;
+	foreach ( $tentativas as $t ) {
+		list( $tenta, $id, $foto ) = $t;
 		$im = mve_qr_desenhar( $url, $tenta, 600, $foto );
 		if ( ! $im ) { continue; }
-		$web = mve_qr_blob( $im, $ext );
+		if ( 'foto' === $tenta ) { $testadas++; }
 		// só usa se ler no tamanho da página e reduzido pela metade (celular mais longe, câmera pior)
 		$pequeno = mve_qr_reduz( $im, (int) ( imagesx( $im ) / 2 ) );
 		$ok = mve_qr_le( mve_qr_blob( $im, 'png' ) ) === $url && mve_qr_le( mve_qr_blob( $pequeno, 'png' ) ) === $url;
 		imagedestroy( $pequeno );
 		if ( ! $ok ) { imagedestroy( $im ); continue; }
-		file_put_contents( "$dir/$nome.$ext", $web );
+		$nome = $mon . '-' . substr( md5( $url . '|' . $id . '|' . $tenta ), 0, 8 );
+		file_put_contents( "$dir/$nome.$ext", mve_qr_blob( $im, $ext ) );
 		imagedestroy( $im );
 		$alta = mve_qr_desenhar( $url, $tenta, 2000, $foto );
 		if ( $alta ) { file_put_contents( "$dir/$nome-impressao.png", mve_qr_blob( $alta, 'png' ) ); imagedestroy( $alta ); }
-		$modelo = $tenta;
+		$modelo = $tenta; $fid = $id;
 		break;
 	}
 	if ( ! $modelo ) { mve_log( 'QR do monumento #' . $mon . ' não passou no teste de leitura.' ); return null; }
@@ -212,7 +222,7 @@ function mve_qr_gerar( $mon, $forcar = false ) {
 		@unlink( $atual['arquivo'] ); @unlink( $atual['impressao'] ?? '' );
 	}
 	$meta = array(
-		'link' => $url, 'foto' => $fid, 'modelo' => $modelo,
+		'link' => $url, 'foto' => $fid, 'modelo' => $modelo, 'assinatura' => $assin, 'fotos_testadas' => $testadas,
 		'arquivo' => "$dir/$nome.$ext", 'url' => trailingslashit( $up['baseurl'] ) . "mv-qr/$nome.$ext",
 		'impressao' => "$dir/$nome-impressao.png", 'url_impressao' => trailingslashit( $up['baseurl'] ) . "mv-qr/$nome-impressao.png",
 		'gerado' => current_time( 'mysql' ),
